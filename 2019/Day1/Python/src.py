@@ -5,7 +5,7 @@ import http.cookiejar
 import argparse
 from pathlib import Path
 
-def get_masses_input_from_file(path: str):
+def get_masses_input_from_file(path: str) -> list[int]:
     p = Path(path)
     if not p.exists():
         raise FileNotFoundError(f"Input file not found: {path}")
@@ -37,8 +37,17 @@ def get_masses_input_from_cache_or_redownload() -> list[int]:
             return [int(line.strip()) for line in input_file if line.strip()]
     else:
         return get_masses_input_from_aoc(cached_data)
-
-
+    
+def calculate_fuel_requirement_for_module_mass(module_mass: int) -> int:
+    return (module_mass // 3 - 2)
+    
+def calculate_real_fuel_requirement(module_mass: int) -> int:
+    fuel_fuel = module_mass // 3 - 2
+    if fuel_fuel <= 0:
+        return (0)
+    else:
+        fuel_fuel += calculate_real_fuel_requirement(fuel_fuel)
+        return (fuel_fuel)
 
 def main():
     parser = argparse.ArgumentParser(description="Advent of Code 2019 Day 1 Fuel Calculator")
@@ -56,9 +65,13 @@ def main():
         else:
             masses = get_masses_input_from_cache_or_redownload()
 
-        total_fuel = sum(mass // 3 - 2 for mass in masses)
+        total_modules_fuel = sum(calculate_fuel_requirement_for_module_mass(mass) for mass in masses)
 
-        print(f"\nTotal fuel required: {total_fuel}")
+        print(f"\n(Part 1) - Transport masses fuel required: {total_modules_fuel}")
+
+        total_trip_fuel_requirement = sum(calculate_real_fuel_requirement(mass) for mass in masses)
+        
+        print(f"\n(Part 2) - Total Fuel for trip required: {total_trip_fuel_requirement}")
 
     except Exception as e:
         print(f"Error: {e}")
