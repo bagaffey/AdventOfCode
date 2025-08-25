@@ -8,4 +8,8 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <ItemGroup>
+    <InternalsVisibleTo Include="AOC.2019.Day01.Tests" />
+  </ItemGroup>
+
 </Project>
