@@ -2,3 +2,4 @@
 .env
 CSharp/**/bin/
 CSharp/**/obj/
+CSharp/.vs/
