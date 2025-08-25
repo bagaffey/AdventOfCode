@@ -67,14 +67,14 @@ class Program
         return (GetMassesInputFromFile(DataCacheFile));
     }
 
-    private static Int32 CalcFuelRequirement(Int32 ModuleMass)
+    internal static Int32 CalcFuelRequirement(Int32 ModuleMass)
     {
         Int32 Result = 0;
         Result = (ModuleMass / 3) - 2;
         return (Result);
     }
 
-    private static Int32 CalcRealFuelRequirement(Int32 ModuleMass)
+    internal static Int32 CalcRealFuelRequirement(Int32 ModuleMass)
     {
         Int32 Result = 0;
         Result = (ModuleMass / 3) - 2;
