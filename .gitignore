@@ -6,3 +6,5 @@ CSharp/.vs/
 C/Out/
 C/.vs/
 .vscode/
+*.exe
+*.pdb
