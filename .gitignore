@@ -3,3 +3,6 @@
 CSharp/**/bin/
 CSharp/**/obj/
 CSharp/.vs/
+C/Out/
+C/.vs/
+.vscode/
