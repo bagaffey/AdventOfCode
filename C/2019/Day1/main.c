@@ -62,27 +62,257 @@ static FILE* xfopen_read(const char* path) {
 #endif
 }
 
-int main(int argc, char** argv) {
-    
-    printf("__STDC_VERSION__ = %ld\n", (long)__STDC_VERSION__);  // expect 202311 on C23
-
-    const char* path = (argc >= 2) ? argv[1] : "input.txt";
+static int* get_masses_from_file(const char* path, size_t* out_count) {
     FILE* f = xfopen_read(path);
-    if (!f) { perror(path); return 1; }
+    if (!f) return NULL;
 
-    char* line = NULL; size_t cap = 0;
-    long long part1 = 0, part2 = 0;
+    int* masses = NULL;
+    size_t count = 0, cap = 0;
 
-    while (getline_compat(&line, &cap, f) != -1) {
+    char* line = NULL;
+    size_t lcap = 0;
+
+    while (getline_compat(&line, &lcap, f) != -1) {
         trim_eol(line);
-        // TODO: parse & solve
-        (void)line;
+        char* s = trim(line);
+        if (*s == '\0') continue;
+
+        char* endptr;
+        long v = strtol(s, &endptr, 10);
+        if (endptr == s || *endptr != '\0') {
+            fprintf_s(stderr, "Invalid integer in input data file: '%s'\n", line);
+            free(masses);
+            masses = NULL;
+            break;
+        }
+
+        if (count == cap) {
+            size_t newcap = cap ? cap * 2 : 16;
+            int* newm = (int*)realloc(masses, newcap * sizeof(int));
+            if (!newm) {
+                free(masses);
+                masses = NULL;
+                break;
+            }
+            masses = newm;
+            cap = newcap;
+        }
+        masses[count++] = (int)v;
     }
 
     free(line);
     fclose(f);
 
-    printf("Part 1: %lld\n", part1);
-    printf("Part 2: %lld\n", part2);
+    if (masses) {
+        *out_count = count;
+    }
+    return masses;
+}
+
+static int download_from_aoc(const char* cache_file) {
+    char* session = NULL;
+    size_t len = 0;
+    errno_t dup_err = _dupenv_s(&session, &len, "AOC_SESSION");
+    if (dup_err != 0 || session == NULL || *session == '\0') {
+        fprintf_s(stderr, "AOC_SESSION environment variable is not set. Provide a file path or set AOC_SESSION.\n");
+        free(session);
+        return 1;
+    }
+
+    HINTERNET hInt = InternetOpenA("AOCFetcher", INTERNET_OPEN_TYPE_PRECONFIG, NULL, NULL, 0);
+    if (!hInt) {
+        fprintf_s(stderr, "InternetOpen failed: %lu\n", GetLastError());
+        free(session);
+        return 1;
+    }
+
+    HINTERNET hConn = InternetConnectA(hInt, "adventofcode.com", INTERNET_DEFAULT_HTTPS_PORT, NULL, NULL, INTERNET_SERVICE_HTTP, 0, 0);
+    if (!hConn) {
+        fprintf_s(stderr, "InternetConnect failed: %lu\n", GetLastError());
+        InternetCloseHandle(hInt);
+        free(session);
+        return 1;
+    }
+
+    HINTERNET hReq = HttpOpenRequestA(hConn, "GET", "/2019/day/1/input", NULL, NULL, NULL, INTERNET_FLAG_SECURE, 0);
+    if (!hReq) {
+        fprintf_s(stderr, "HttpOpenRequest failed: %lu\n", GetLastError());
+        InternetCloseHandle(hConn);
+        InternetCloseHandle(hInt);
+        free(session);
+        return 1;
+    }
+
+    char header[512];
+    _snprintf_s(header, sizeof(header), _TRUNCATE, "Cookie: session=%s\r\n", session);
+    if (!HttpAddRequestHeadersA(hReq, header, (DWORD)-1L, HTTP_ADDREQ_FLAG_ADD | HTTP_ADDREQ_FLAG_REPLACE)) {
+        fprintf_s(stderr, "HttpAddRequestHeaders failed: %lu\n", GetLastError());
+        InternetCloseHandle(hReq);
+        InternetCloseHandle(hConn);
+        InternetCloseHandle(hInt);
+        free(session);
+        return 1;
+    }
+
+    if (!HttpSendRequestA(hReq, NULL, 0, NULL, 0)) {
+        fprintf_s(stderr, "HttpSendRequest failed: %lu\n", GetLastError());
+        InternetCloseHandle(hReq);
+        InternetCloseHandle(hConn);
+        InternetCloseHandle(hInt);
+        free(session);
+        return 1;
+    }
+
+    DWORD status = 0;
+    DWORD dlen = sizeof(status);
+    if (!HttpQueryInfoA(hReq, HTTP_QUERY_STATUS_CODE | HTTP_QUERY_FLAG_NUMBER, &status, &dlen, NULL)) {
+        fprintf_s(stderr, "HttpQueryInfo failed: %lu\n", GetLastError());
+        InternetCloseHandle(hReq);
+        InternetCloseHandle(hConn);
+        InternetCloseHandle(hInt);
+        free(session);
+        return 1;
+    }
+
+    if (status != 200) {
+        fprintf_s(stderr, "Failed to fetch input (%lu). Body: ", status);
+        char buf[4096];
+        DWORD read;
+        while (InternetReadFile(hReq, buf, sizeof(buf) - 1, &read) && read > 0) {
+            buf[read] = '\0';
+            fprintf_s(stderr, "%s", buf);
+        }
+        fprintf_s(stderr, "\n");
+        InternetCloseHandle(hReq);
+        InternetCloseHandle(hConn);
+        InternetCloseHandle(hInt);
+        free(session);
+        return 1;
+    }
+
+    FILE* out = NULL;
+    errno_t ec = fopen_s(&out, cache_file, "wb");
+    if (ec != 0) {
+        errno = ec;
+        perror(cache_file);
+        InternetCloseHandle(hReq);
+        InternetCloseHandle(hConn);
+        InternetCloseHandle(hInt);
+        free(session);
+        return 1;
+    }
+
+    char buf[4096];
+    DWORD read;
+    while (InternetReadFile(hReq, buf, sizeof(buf), &read) && read > 0) {
+        fwrite(buf, 1, read, out);
+    }
+
+    fclose(out);
+    InternetCloseHandle(hReq);
+    InternetCloseHandle(hConn);
+    InternetCloseHandle(hInt);
+    free(session);
+    return 0;
+}
+
+static void load_env(const char* env_path) {
+    FILE* f = xfopen_read(env_path);
+    if (!f) return;
+
+    char* line = NULL;
+    size_t cap = 0;
+
+    while (getline_compat(&line, &cap, f) != -1) {
+        trim_eol(line);
+        char* s = trim(line);
+        if (*s == '\0' || *s == '#') continue;
+
+        char* eq = strchr(s, '=');
+        if (!eq) continue;
+
+        *eq = '\0';
+        char* key = trim(s);
+        char* val = trim(eq + 1);
+
+        // Strip surrounding quotes if present
+        size_t vlen = strlen(val);
+        if (vlen >= 2 && val[0] == '"' && val[vlen - 1] == '"') {
+            val[vlen - 1] = '\0';
+            val++;
+        }
+
+        _putenv_s(key, val);
+    }
+
+    free(line);
+    fclose(f);
+}
+
+static int calc_fuel_requirement(int module_mass) {
+    return (module_mass / 3) - 2;
+}
+
+static int calc_real_fuel_requirement(int module_mass) {
+    int fuel = (module_mass / 3) - 2;
+    if (fuel <= 0) {
+        return 0;
+    }
+    else {
+        return fuel + calc_real_fuel_requirement(fuel);
+    }
+}
+
+int main(int argc, char** argv) {
+    printf("__STDC_VERSION__ = %ld\n", (long)__STDC_VERSION__); // expect 202311 on C23
+
+    const char* input_path = (argc >= 2) ? argv[1] : NULL;
+
+    int* masses = NULL;
+    size_t num_masses = 0;
+
+    if (input_path && *input_path != '\0') {
+        masses = get_masses_from_file(input_path, &num_masses);
+        if (!masses) {
+            perror(input_path);
+            return 1;
+        }
+    }
+    else {
+        load_env("..\\..\\..\\..\\..\\..\\..\\.env");
+
+        char temp_dir[MAX_PATH];
+        GetTempPathA(MAX_PATH, temp_dir);
+
+        char cache_file[MAX_PATH];
+        _snprintf_s(cache_file, MAX_PATH, _TRUNCATE, "%s2019-12-01.dat", temp_dir);
+
+        DWORD attr = GetFileAttributesA(cache_file);
+        if (attr == INVALID_FILE_ATTRIBUTES) {
+            if (download_from_aoc(cache_file) != 0) {
+                return 1;
+            }
+        }
+
+        masses = get_masses_from_file(cache_file, &num_masses);
+        if (!masses) {
+            perror(cache_file);
+            return 1;
+        }
+    }
+
+    long long total_fuel = 0;
+    long long total_real_fuel = 0;
+
+    for (size_t i = 0; i < num_masses; i++) {
+        total_fuel += calc_fuel_requirement(masses[i]);
+        total_real_fuel += calc_real_fuel_requirement(masses[i]);
+    }
+
+    free(masses);
+
+    printf("\n(Part 1) - Transport masses fuel required: %lld\n", total_fuel);
+    printf("\n(Part 2) - Total Fuel for Trip Required: %lld\n", total_real_fuel);
+
     return 0;
 }
