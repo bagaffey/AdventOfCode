@@ -2,6 +2,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <ctype.h>
+#include <windows.h>
+#include <wininet.h>
 
 #ifdef _MSC_VER
 typedef long ssize_t; // MSVC cl.exe doesn't provide ssize_t in C
@@ -11,6 +14,14 @@ typedef long ssize_t; // MSVC cl.exe doesn't provide ssize_t in C
 static char* trim_eol(char* s) {
     size_t n = strlen(s);
     while (n && (s[n - 1] == '\n' || s[n - 1] == '\r')) s[--n] = '\0';
+    return s;
+}
+
+// Trim leading and trailing whitespace
+static char* trim(char* s) {
+    while (isspace((unsigned char)*s)) s++;
+    char* e = s + strlen(s) - 1;
+    while (e >= s && isspace((unsigned char)*e)) *e-- = '\0';
     return s;
 }
 
