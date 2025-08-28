@@ -3,8 +3,10 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
+#ifdef _WIN32
 #include <windows.h>
 #include <wininet.h>
+#endif
 
 #ifdef _MSC_VER
 typedef long ssize_t; // MSVC cl.exe doesn't provide ssize_t in C
@@ -81,6 +83,7 @@ static int* get_masses_from_file(const char* path, size_t* out_count) {
         long v = strtol(s, &endptr, 10);
         if (endptr == s || *endptr != '\0') {
             fprintf_s(stderr, "Invalid integer in input data file: '%s'\n", line);
+            errno = EINVAL;
             free(masses);
             masses = NULL;
             break;
@@ -134,7 +137,8 @@ static int download_from_aoc(const char* cache_file) {
         return 1;
     }
 
-    HINTERNET hReq = HttpOpenRequestA(hConn, "GET", "/2019/day/1/input", NULL, NULL, NULL, INTERNET_FLAG_SECURE, 0);
+    HINTERNET hReq = HttpOpenRequestA(hConn, "GET", "/2019/day/1/input", NULL, NULL, NULL,
+        INTERNET_FLAG_SECURE | INTERNET_FLAG_RELOAD | INTERNET_FLAG_NO_CACHE_WRITE, 0);
     if (!hReq) {
         fprintf_s(stderr, "HttpOpenRequest failed: %lu\n", GetLastError());
         InternetCloseHandle(hConn);
@@ -143,16 +147,20 @@ static int download_from_aoc(const char* cache_file) {
         return 1;
     }
 
-    char header[512];
-    _snprintf_s(header, sizeof(header), _TRUNCATE, "Cookie: session=%s\r\n", session);
-    if (!HttpAddRequestHeadersA(hReq, header, (DWORD)-1L, HTTP_ADDREQ_FLAG_ADD | HTTP_ADDREQ_FLAG_REPLACE)) {
+    size_t space_needed = strlen(session) + 32;
+    char *header = (char*) malloc(space_needed);
+    if (!header) { /* handle OOM */ }
+    _snprintf_s(header, space_needed, _TRUNCATE, "Cookie: session=%s\r\n", session);
+    if (!HttpAddRequestHeadersA(hReq, header, (DWORD) - 1L, HTTP_ADDREQ_FLAG_ADD | HTTP_ADDREQ_FLAG_REPLACE)) {
         fprintf_s(stderr, "HttpAddRequestHeaders failed: %lu\n", GetLastError());
         InternetCloseHandle(hReq);
         InternetCloseHandle(hConn);
         InternetCloseHandle(hInt);
         free(session);
+        free(header);
         return 1;
     }
+    free(header);
 
     if (!HttpSendRequestA(hReq, NULL, 0, NULL, 0)) {
         fprintf_s(stderr, "HttpSendRequest failed: %lu\n", GetLastError());
