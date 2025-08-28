@@ -13,14 +13,14 @@ typedef long ssize_t; // MSVC cl.exe doesn't provide ssize_t in C
 #endif
 
 // Trim trailing \r or \n
-static char* trim_eol(char* s) {
+static char* TrimEOL(char* s) {
     size_t n = strlen(s);
     while (n && (s[n - 1] == '\n' || s[n - 1] == '\r')) s[--n] = '\0';
     return s;
 }
 
 // Trim leading and trailing whitespace
-static char* trim(char* s) {
+static char* Trim(char* s) {
     while (isspace((unsigned char)*s)) s++;
     char* e = s + strlen(s) - 1;
     while (e >= s && isspace((unsigned char)*e)) *e-- = '\0';
@@ -64,7 +64,7 @@ static FILE* xfopen_read(const char* path) {
 #endif
 }
 
-static int* get_masses_from_file(const char* path, size_t* out_count) {
+static int* GetMassesFromFile(const char* path, size_t* out_count) {
     FILE* f = xfopen_read(path);
     if (!f) return NULL;
 
@@ -75,8 +75,8 @@ static int* get_masses_from_file(const char* path, size_t* out_count) {
     size_t lcap = 0;
 
     while (getline_compat(&line, &lcap, f) != -1) {
-        trim_eol(line);
-        char* s = trim(line);
+        TrimEOL(line);
+        char* s = Trim(line);
         if (*s == '\0') continue;
 
         char* endptr;
@@ -112,7 +112,7 @@ static int* get_masses_from_file(const char* path, size_t* out_count) {
     return masses;
 }
 
-static int download_from_aoc(const char* cache_file) {
+static int DownloadFromAOC(const char* cache_file) {
     char* session = NULL;
     size_t len = 0;
     errno_t dup_err = _dupenv_s(&session, &len, "AOC_SESSION");
@@ -224,7 +224,7 @@ static int download_from_aoc(const char* cache_file) {
     return 0;
 }
 
-static void load_env(const char* env_path) {
+static void LoadEnvFile(const char* env_path) {
     FILE* f = xfopen_read(env_path);
     if (!f) return;
 
@@ -232,16 +232,16 @@ static void load_env(const char* env_path) {
     size_t cap = 0;
 
     while (getline_compat(&line, &cap, f) != -1) {
-        trim_eol(line);
-        char* s = trim(line);
+        TrimEOL(line);
+        char* s = Trim(line);
         if (*s == '\0' || *s == '#') continue;
 
         char* eq = strchr(s, '=');
         if (!eq) continue;
 
         *eq = '\0';
-        char* key = trim(s);
-        char* val = trim(eq + 1);
+        char* key = Trim(s);
+        char* val = Trim(eq + 1);
 
         // Strip surrounding quotes if present
         size_t vlen = strlen(val);
@@ -257,17 +257,17 @@ static void load_env(const char* env_path) {
     fclose(f);
 }
 
-static int calc_fuel_requirement(int module_mass) {
+static int CalculateFuelRequirement(int module_mass) {
     return (module_mass / 3) - 2;
 }
 
-static int calc_real_fuel_requirement(int module_mass) {
+static int CalculateRealFuelRequirement(int module_mass) {
     int fuel = (module_mass / 3) - 2;
     if (fuel <= 0) {
-        return 0;
+        return (0);
     }
     else {
-        return fuel + calc_real_fuel_requirement(fuel);
+        return (fuel + CalculateRealFuelRequirement(fuel));
     }
 }
 
@@ -280,14 +280,14 @@ int main(int argc, char** argv) {
     size_t num_masses = 0;
 
     if (input_path && *input_path != '\0') {
-        masses = get_masses_from_file(input_path, &num_masses);
+        masses = GetMassesFromFile(input_path, &num_masses);
         if (!masses) {
             perror(input_path);
             return 1;
         }
     }
     else {
-        load_env("..\\..\\..\\..\\..\\..\\..\\.env");
+        LoadEnvFile("..\\..\\..\\..\\..\\..\\..\\.env");
 
         char temp_dir[MAX_PATH];
         GetTempPathA(MAX_PATH, temp_dir);
@@ -297,12 +297,12 @@ int main(int argc, char** argv) {
 
         DWORD attr = GetFileAttributesA(cache_file);
         if (attr == INVALID_FILE_ATTRIBUTES) {
-            if (download_from_aoc(cache_file) != 0) {
+            if (DownloadFromAOC(cache_file) != 0) {
                 return 1;
             }
         }
 
-        masses = get_masses_from_file(cache_file, &num_masses);
+        masses = GetMassesFromFile(cache_file, &num_masses);
         if (!masses) {
             perror(cache_file);
             return 1;
@@ -313,8 +313,8 @@ int main(int argc, char** argv) {
     long long total_real_fuel = 0;
 
     for (size_t i = 0; i < num_masses; i++) {
-        total_fuel += calc_fuel_requirement(masses[i]);
-        total_real_fuel += calc_real_fuel_requirement(masses[i]);
+        total_fuel += CalculateFuelRequirement(masses[i]);
+        total_real_fuel += CalculateRealFuelRequirement(masses[i]);
     }
 
     free(masses);
