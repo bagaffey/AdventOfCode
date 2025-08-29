@@ -91,12 +91,19 @@ typedef u32 xu32;
 #define F32Max FLT_MAX
 #define F32Min -FLT_MAX
 
-struct buffer
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+typedef struct buffer
 {
 	umw Count;
 	u8* Data;
-};
-typedef buffer string;
+} buffer, string;
+
+#ifdef __cplusplus
+}
+#endif
 
 #define Pi32 3.14159265359f
 #define Tau32 6.28318530717958647692f
