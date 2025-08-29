@@ -3,10 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
-<<<<<<< HEAD
 #include "basetypes.h"
-=======
->>>>>>> main
 #ifdef _WIN32
 #include <windows.h>
 #include <wininet.h>
