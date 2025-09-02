@@ -91,6 +91,19 @@ typedef u32 xu32;
 #define F32Max FLT_MAX
 #define F32Min -FLT_MAX
 
+#define UMWFromPointer(Pointer) ((umw)(Pointer))
+#define PointerFromUMW(type, Value) (type *)(Value)
+
+//#define U32FromPointer(Pointer) ((u32)(mem_index)(Pointer))
+//#define PointerFromU32(type, Value) (type *)((mem_index)Value)
+
+#define OffsetOf(type, Member) (umw)&(((type *)0)->Member)
+#define ContainerOf(ptr, type, member) ((type *)((char *)(ptr) - OffsetOf(type, Member)))
+
+#define FILE_AND_LINE__(A, B) A "|" #B
+#define FILE_AND_LINE_(A, B) FILE_AND_LINE__(A, B)
+#define FILE_AND_LINE FILE_AND_LINE_(__FILE__, __LINE__)
+
 #ifdef __cplusplus
 extern "C" {
 #endif
