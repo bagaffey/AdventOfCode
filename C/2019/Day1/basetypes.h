@@ -118,5 +118,144 @@ typedef struct buffer
 }
 #endif
 
+typedef union v2
+{
+	struct
+	{
+		real32 X, Y;
+	};
+	struct
+	{
+		real32 U, V;
+	};
+	struct
+	{
+		real32 Width, Height;
+	};
+} v2;
+
+typedef union v2u
+{
+	struct
+	{
+		u32 X, Y;
+	};
+	struct 
+	{
+		u32 Width, Height;
+	};
+	u32 E[2];
+} v2u;
+
+typedef union v2s
+{
+	struct
+	{
+		s32 X, Y;
+	};
+	s32 E[2];
+} v2s;
+
+typedef union v3
+{
+	struct
+	{
+		real32 X, Y, Z;
+	};
+	struct
+	{
+		real32 U, V, __;
+	};
+	struct
+	{
+		real32 R, G, B;
+	};
+	struct
+	{
+		v2 XY;
+		real32 Ignored0_;
+	};
+	struct
+	{
+		real32 Ignored1_;
+		v2 YZ;
+	};
+	struct
+	{
+		v2 UV;
+		real32 Ignored2_;
+	};
+	struct
+	{
+		real32 Ignored3_;
+		v2 V__;
+	};
+	f32 E[3];
+} v3;
+
+typedef union v3s
+{
+	struct
+	{
+		s32 x;
+		s32 y;
+		s32 z;
+	};
+	s32 E[3];
+} v3s;
+
+typedef union v4
+{
+	struct
+	{
+		union
+		{
+			v3 XYZ;
+			struct
+			{
+				real32 X, Y, Z;
+			};
+		};
+
+		real32 W;
+
+		struct
+		{
+			union
+			{
+				v3 RGB;
+				struct
+				{
+					real32 R, G, B;
+				};
+			};
+
+			real32 A;
+		};
+
+		struct
+		{
+			v2 XY;
+			real32 Ignored0_;
+			real32 Ignored1_;
+		};
+
+		struct
+		{
+			real32 Ignored2_;
+			v2 YZ;
+			real32 Ignored3_;
+		};
+
+		struct
+		{
+			real32 Ignored4_;
+			real32 Ignored5_;
+			v2 ZW;
+		};
+		f32 E[4];
+	};
+} v4;
+
 #define Pi32 3.14159265359f
 #define Tau32 6.28318530717958647692f
