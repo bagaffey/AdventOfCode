@@ -257,5 +257,35 @@ typedef union v4
 	};
 } v4;
 
+typedef struct m4x4
+{
+	/* E[ROW][COLUMN] */
+	f32 E[4][4];
+} m4x4;
+
+typedef struct m4x4_inv
+{
+	m4x4 Forward;
+	m4x4 Inverse;
+} m4x4_inv;
+
+typedef struct rectangle2i
+{
+	v2s Min;
+	v2s Max;
+} rectangle2i;
+
+typedef struct rectangle2
+{
+	v2 Min;
+	v2 Max;
+} rectangle2;
+
+typedef struct rectangle3
+{
+	v3 Min;
+	v3 Max;
+} rectangle3;
+
 #define Pi32 3.14159265359f
 #define Tau32 6.28318530717958647692f
