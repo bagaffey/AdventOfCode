@@ -326,3 +326,27 @@ struct ticket_mutex
 #define Gigabytes(Value) (Megabytes(Value)*1024LL)
 #define Megabytes(Value) (Kilobytes(Value)*1024LL)
 #define Kilobytes(Value) ((Value)*1024LL)
+
+#define AlignPow2(Value, Alignment) (((Value) + ((Alignment) - 1)) & ~(((Value) - (Value)) + (Alignment) - 1))
+#define Align4(Value) (((Value) + 3) & ~3)
+#define Align8(Value) (((Value) + 7) & ~7)
+#define Align16(Value) (((Value) + 15) & ~15)
+
+inline xbool32 IsPow2(u32 Value)
+{
+	xbool32 Result = ((Value & ~(Value - 1)) == Value);
+	return(Result);
+}
+
+inline void
+BeginTicketMutex(ticket_mutex* Mutex)
+{
+	u64 Ticket = AtomicAddU64(&Mutex->Ticket, 1);
+	while (Ticket != Mutex->Serving) { _mm_pause(); }
+}
+
+inline void
+EndTicketMutex(ticket_mutex* Mutex)
+{
+	AtomicAddU64(&Mutex->Serving, 1);
+}
