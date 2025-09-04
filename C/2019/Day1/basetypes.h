@@ -321,3 +321,8 @@ struct ticket_mutex
 
 #define InvlaidCodePath Assert(!"InvalidCodePath")
 #define InvalidDefaultCase default: {InvalidCodePath;} break
+
+#define Terabytes(Value) (Gigabytes(Value)*1024LL)
+#define Gigabytes(Value) (Megabytes(Value)*1024LL)
+#define Megabytes(Value) (Kilobytes(Value)*1024LL)
+#define Kilobytes(Value) ((Value)*1024LL)
