@@ -287,5 +287,22 @@ typedef struct rectangle3
 	v3 Max;
 } rectangle3;
 
+struct ticket_mutex
+{
+	u64 volatile Ticket;
+	u64 volatile Serving;
+};
+
 #define Pi32 3.14159265359f
 #define Tau32 6.28318530717958647692f
+
+#define CTAssert(Expr) static_assert(Expr, "Assertion failed: " #Expr)
+
+#define func static
+
+#if !defined(internal)
+#define internal static
+#endif
+#define local_persist static
+#define global static
+#define TEMPORARY 
