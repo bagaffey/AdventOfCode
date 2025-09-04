@@ -306,3 +306,18 @@ struct ticket_mutex
 #define local_persist static
 #define global static
 #define TEMPORARY 
+
+#if PROJ_INTERNAL
+#define NotImplemented Assert(!"NotImplemented")
+#else
+#define NotImplemented ItIsNotImplemented
+#endif
+
+#if PROJ_SLOW
+#define Assert(Expression) if(!(Expression)) {*(volatile int *)0 = 0;}
+#else
+#define Assert(Expression)
+#endif
+
+#define InvlaidCodePath Assert(!"InvalidCodePath")
+#define InvalidDefaultCase default: {InvalidCodePath;} break
