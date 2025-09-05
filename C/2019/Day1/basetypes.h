@@ -291,11 +291,11 @@ typedef struct rectangle3
 	v3 Max;
 } rectangle3;
 
-struct ticket_mutex
+typedef struct ticket_mutex
 {
 	u64 volatile Ticket;
 	u64 volatile Serving;
-};
+} ticket_mutex;
 
 #define Pi32 3.14159265359f
 #define Tau32 6.28318530717958647692f
@@ -338,9 +338,53 @@ struct ticket_mutex
 
 inline xbool32 IsPow2(u32 Value)
 {
-	xbool32 Result = ((Value & ~(Value - 1)) == Value);
+	xbool32 Result = ((Value != 0) && ((Value & (Value - 1)) == 0));
 	return(Result);
 }
+
+#if COMPILER_MSVC
+#define CompletePreviousReadsBeforeFutureReads _ReadBarrier()
+#define CompletePreviousWritesBeforeFutureWrites _WriteBarrier()
+inline uint32 AtomicCompareExchangeUInt32(uint32 volatile* Value, uint32 New, uint32 Expected)
+{
+	uint32 Result = _InterlockedCompareExchange((long volatile*)Value, New, Expected);
+	return(Result);
+}
+
+inline uint64 AtomicExchangeU64(uint64 volatile* Value, uint64 New)
+{
+	uint64 Result = _InterlockedExchange64((__int64 volatile*)Value, New);
+	return(Result);
+}
+
+inline uint64 AtomicAddU64(uint64 volatile* Value, uint64 Addend)
+{
+	uint64 Result = _InterlockedExchangeAdd64((__int64 volatile*)Value, Addend);
+	return(Result);
+}
+
+#elif COMPILER_LLVM
+#define CompletePreviousReadsBeforeFutureReads asm volatile("" ::: "memory")
+#define CompletePreviousWritesBeforeFutureWrites asm volatile("" ::: "memory")
+inline uint32 AtomicCompareExchangeUInt32(uint32 volatile* Value, uint32 New, uint32 Expected)
+{
+	uint32 Result = __sync_val_compare_and_swap(Value, Expected, New);
+
+	return(Result);
+}
+inline uint64 AtomicExchangeU64(uint64 volatile* Value, uint64 New)
+{
+	uint64 Result = __sync_lock_test_and_set(Value, New);
+	return(Result);
+}
+inline uint64 AtomicAddU64(uint64 volatile* Value, uint64 Addend)
+{
+	uint64 Result = __sync_fetch_and_add(Value, Addend);
+
+	return(Result);
+}
+#endif
+
 
 inline void
 BeginTicketMutex(ticket_mutex* Mutex)
