@@ -385,7 +385,6 @@ inline uint64 AtomicAddU64(uint64 volatile* Value, uint64 Addend)
 }
 #endif
 
-
 inline void
 BeginTicketMutex(ticket_mutex* Mutex)
 {
@@ -397,4 +396,42 @@ inline void
 EndTicketMutex(ticket_mutex* Mutex)
 {
 	AtomicAddU64(&Mutex->Serving, 1);
+}
+
+inline u32
+SafeTruncateToU32(u64 Value)
+{
+	Assert(Value <= U32Max);
+	u32 Result = (u32)Value;
+	return(Result);
+}
+
+inline u16
+SafeTruncateToU16(u32 Value)
+{
+	Assert(Value <= U16Max);
+	u16 Result = (u16)Value;
+	return(Result);
+}
+
+inline u8
+SafeTruncateToU8(u64 Value)
+{
+	Assert(Value <= U8Max);
+	u8 Result = (u8)Value;
+	return(Result);
+}
+
+inline u32
+StringLength(char* String)
+{
+	u32 Count = 0;
+	if (String)
+	{
+		while (*String++)
+		{
+			++Count;
+		}
+	}
+	return(Count);
 }
