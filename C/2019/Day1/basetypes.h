@@ -8,13 +8,17 @@
 #define COMPILER_LLVM 0
 #endif
 
+
+
 #if !COMPILER_MSVC && !COMPILER_LLVM
-#if _MSC_VER
+#if defined(__clang__)
+#undef COMPILER_LLVM
+#define COMPILER_LLVM 1
+#elif defined(_MSC_VER)
 #undef COMPILER_MSVC
 #define COMPILER_MSVC 1
 #else
-#undef COMPILER_LLVM
-#define COMPILER_LLVM 1
+#error Unknown compiler
 #endif
 #endif
 
