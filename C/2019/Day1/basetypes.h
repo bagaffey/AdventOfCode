@@ -318,7 +318,14 @@ typedef struct ticket_mutex
 #endif
 
 #if PROJ_SLOW
+#if COMPILER_MSVC
+#define Assert(Expression) do { if(!Expression)) { __debugbreak(); } } while(0)
+#elif COMPILER_LLVM
+#define Assert(Expression) do { if(!(Expression)) { __builtin_trap(); } } while(0)
+#else
+// triggers null deref warning
 #define Assert(Expression) if(!(Expression)) {*(volatile int *)0 = 0;}
+#endif
 #else
 #define Assert(Expression)
 #endif
