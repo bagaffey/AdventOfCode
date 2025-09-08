@@ -172,14 +172,70 @@ extern "C" {
 
     typedef struct platform_memory_block platform_memory_block;
 
-    typedef struct platform_memory_block
+    struct platform_memory_block
     {
         u64 Flags;
         u64 Size;
         u8* Base;
         umw Used;
         platform_memory_block *ArenaPrev;
-    } platform_memory_block;
+    };
 
 #define PLATFORM_GET_ALL_FILE_OF_TYPE_BEGIN(name) platform_file_group name(platform_file_type Type)
     typedef PLATFORM_GET_ALL_FILE_OF_TYPE_BEGIN(platform_get_all_files_of_type_begin);
+
+#define PLATFORM_GET_ALL_FILE_OF_TYPE_END(name) void name(platform_file_group *FileGroup)
+    typedef PLATFORM_GET_ALL_FILE_OF_TYPE_END(platform_get_all_files_of_type_end);
+
+    enum platform_open_file_mode_flags
+    {
+        OpenFile_Read = 0x1,
+        OpenFile_Write = 0x2,
+    };
+
+#define PLATFORM_OPEN_FILE(name) platform_file_handle name(platform_file_group *FileGroup, platform_file_info *Info, u32 ModeFlags)
+    typedef PLATFORM_OPEN_FILE(platform_open_file);
+
+#define PLATFORM_SET_FILE_SIZE(name) void name(platform_file_handle *Handle, u64 Size)
+    typedef PLATFORM_SET_FILE_SIZE(platform_set_file_size);
+
+#define PLATFORM_GET_FILE_BY_PATH(name) platform_file_info *name(platform_file_group *FileGroup, char *Path, u32 ModeFlags)
+    typedef PLATFORM_GET_FILE_BY_PATH(platform_get_file_by_path);
+
+#define PLATFORM_READ_DATA_FROM_FILE(name) void name(platform_file_handle *Handle, u64 Offset, u64 Size, void *Dest)
+    typedef PLATFORM_READ_DATA_FROM_FILE(platform_read_data_from_file);
+
+#define PLATFORM_WRITE_DATA_TO_FILE(name) void name(platform_file_handle *Handle, u64 Offset, u64 Size, void *Source)
+    typedef PLATFORM_WRITE_DATA_TO_FILE(platform_write_data_to_file);
+
+#define PLATFORM_ATOMIC_REPLACE_FILE_CONTENTS(name) bool32 name(platform_file_info *Info, u64 Size, void *Source)
+    typedef PLATFORM_ATOMIC_REPLACE_FILE_CONTENTS(platform_atomic_replace_file_contents);
+
+#define PLATFORM_FILE_ERROR(name) void name(platform_file_handle *Handle, char *Message)
+    typedef PLATFORM_FILE_ERROR(platform_file_error);
+
+#define PLATFORM_CLOSE_FILE(name) void name(platform_file_handle *Handle)
+    typedef PLATFORM_CLOSE_FILE(platform_close_file);
+
+#define PlatformNoFileErrors(Handle) ((Handle)->NoErrors)
+
+    typedef struct platform_work_queue platform_work_queue;
+
+#define PLATFORM_WORK_QUEUE_CALLBACK(name) void name(platform_work_queue *Queue, void *Data)
+    typedef PLATFORM_WORK_QUEUE_CALLBACK(platform_work_queue_callback);
+
+#define PLATFORM_ALLOCATE_MEMORY(name) platform_memory_block *name(mem_index Size, u64 Flags)
+    typedef PLATFORM_ALLOCATE_MEMORY(platform_allocate_memory);
+
+#define PLATFORM_DEALLOCATE_MEMORY(name) void name(platform_memory_block *Block)
+    typedef PLATFORM_DEALLOCATE_MEMORY(platform_deallocate_memory);
+
+    typedef void platform_add_entry(platform_work_queue* Queue, platform_work_queue_callback* Callback, void* Data);
+    typedef void platform_complete_all_work(platform_work_queue* Queue);
+
+
+    enum platform_error_type
+    {
+        PlatformError_Fatal,
+        PlatformError_Nonfatal,
+    };
