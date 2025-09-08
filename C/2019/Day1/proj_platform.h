@@ -61,7 +61,7 @@ extern "C" {
 #define DEBUG_PLATFORM_GET_PROCESS_STATE(name) dbg_process_state name(dbg_executing_process Process)
     typedef DEBUG_PLATFORM_GET_PROCESS_STATE(dbg_platform_get_process_state);
 
-    extern struct game_memory* DebugGlobalMemory;
+    extern struct app_memory* DebugGlobalMemory;
 #endif
 
     /*
@@ -272,3 +272,20 @@ extern "C" {
 
     } platform_api;
     extern platform_api Platform;
+
+    typedef struct app_memory
+    {
+        struct app_state* AppState;
+
+#if PROJ_INTERNAL
+        struct debug_table* DebugTable;
+        struct debug_state* DebugState;
+#endif
+
+        platform_work_queue* HighPriorityQueue;
+        platform_work_queue* LowPriorityQueue;
+        struct renderer_texture_queue* TextureQueue;
+
+        bool32 ExecutableReloaded;
+        platform_api PlatformAPI;
+    } app_memory;
