@@ -234,8 +234,41 @@ extern "C" {
     typedef void platform_complete_all_work(platform_work_queue* Queue);
 
 
-    enum platform_error_type
+    typedef enum platform_error_type
     {
         PlatformError_Fatal,
         PlatformError_Nonfatal,
-    };
+    } platform_error_type;
+
+#define PLATFORM_ERROR_MESSAGE(name) void name(platform_error_type Type, char *Message)
+    typedef PLATFORM_ERROR_MESSAGE(platform_error_message);
+
+    typedef struct platform_api
+    {
+        platform_add_entry* AddEntry;
+        platform_complete_all_work* CompleteAllWork;
+
+        platform_get_all_files_of_type_begin* GetAllFilesOfTypeBegin;
+        platform_get_all_files_of_type_end* GetAllFilesOfTypeEnd;
+        platform_get_file_by_path* GetFileByPath;
+        platform_open_file* OpenFile;
+        platform_set_file_size* SetFileSize;
+        platform_read_data_from_file* ReadDataFromFile;
+        platform_write_data_to_file* WriteDataToFile;
+        platform_atomic_replace_file_contents* AtomicReplaceFileContents;
+        platform_file_error* FileError;
+        platform_close_file* CloseFile;
+
+        platform_allocate_memory* AllocateMemory;
+        platform_deallocate_memory* DeallocateMemory;
+
+        platform_error_message* ErrorMessage;
+
+#if PROJ_INTERNAL
+        dbg_platform_execute_system_command* DEBUGExecuteSystemCommand;
+        dbg_platform_get_process_state* DEBUGGetProcessState;
+        dbg_platform_get_memory_stats* DEBUGGetMemoryStats;
+#endif
+
+    } platform_api;
+    extern platform_api Platform;
