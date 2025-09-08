@@ -289,3 +289,13 @@ extern "C" {
         bool32 ExecutableReloaded;
         platform_api PlatformAPI;
     } app_memory;
+
+    typedef struct app_render_commands app_render_commands;
+    typedef struct app_render_settings app_render_settings;
+#define APP_UPDATE_AND_RENDER(name) void name(app_memory *Memory, app_input *Input, app_render_commands *RenderCommands)
+    typedef APP_UPDATE_AND_RENDER(app_update_and_render);
+
+// This function has to be very fast. It cannot be longer than a ms.
+// Need to measure func's performance
+#define APP_GET_SOUND_SAMPLES(name) void name(app_memory *Memory, app_sound_output_buffer *SoundBuffer)
+    typedef APP_GET_SOUND_SAMPLES(app_get_sound_samples);
