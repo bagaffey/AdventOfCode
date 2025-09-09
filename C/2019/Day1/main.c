@@ -3,7 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
-#include "proj_platform.h"
+#include "app_platform.h"
 #include "app_intrinsics.h"
 #ifdef _WIN32
 #include <windows.h>
