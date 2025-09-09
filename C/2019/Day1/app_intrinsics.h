@@ -1,4 +1,4 @@
-#include "math.h"
+//#include "math.h"
 
 #define Maximum(A, B) ((A > B) ? (A) : (B))
 #define Minimum(A, B) ((A < B) ? (A) : (B))
@@ -27,5 +27,19 @@ SignOfF32(f32 Value)
 
 	f32 Result = _mm_cvtss_f32(Combined);
 
+	return(Result);
+}
+
+inline f32
+SquareRoot(f32 Real32)
+{
+	f32 Result = _mm_cvtss_f32(_mm_sqrt_ss(_mm_set_ss(Real32)));
+	return(Result);
+}
+
+inline f32
+ReciprocalSquareRoot(f32 Real32)
+{
+	f32 Result = (1.0f / SquareRoot(Real32));
 	return(Result);
 }
