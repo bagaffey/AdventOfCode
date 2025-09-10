@@ -1,5 +1,5 @@
 #include "basetypes.h"
-//#include "math.h"
+#include "math.h"
 
 #define Maximum(A, B) ((A > B) ? (A) : (B))
 #define Minimum(A, B) ((A < B) ? (A) : (B))
@@ -156,5 +156,125 @@ inline int32
 CeilReal32ToInt32(real32 Real32)
 {
 	int32 Result = _mm_cvtss_si32(_mm_ceil_ss(_mm_setzero_ps(), _mm_set_ss(Real32)));
+	return(Result);
+}
+
+inline u32
+Hash32(u64 A, u64 B)
+{
+	u8 Seed[16] =
+	{
+		0xba, 0xbb, 0xbd, 0x40,
+		0x25, 0x52, 0x32, 0x55,
+		0x16, 0x71, 0x70, 0xc1,
+		0x08, 0x83, 0x89, 0x73,
+	};
+	__m128i Hash = _mm_set_epi64x(A, B);
+	Hash = _mm_aesdec_si128(Hash, _mm_loadu_si128((__m128i*)Seed));
+	Hash = _mm_aesdec_si128(Hash, _mm_loadu_si128((__m128i*)Seed));
+	u32 Result = _mm_extract_epi32(Hash, 0);
+	return(Result);
+}
+
+inline int32
+TruncateReal32ToInt32(real32 Real32)
+{
+	int32 Result = (int32)Real32;
+	return(Result);
+}
+
+inline real32
+Sin(real32 Angle)
+{
+	real32 Result = sinf(Angle);
+	return(Result);
+}
+
+inline real32
+Cos(real32 Angle)
+{
+	real32 Result = cosf(Angle);
+	return(Result);
+}
+
+inline real32
+ATan2(real32 Y, real32 X)
+{
+	real32 Result = atan2f(Y, X);
+	return(Result);
+}
+
+inline real32
+AbsoluteValue(real32 Real32)
+{
+	real32 Result = fabsf(Real32);
+	return(Result);
+}
+
+typedef struct bit_scan_result
+{
+	bool32 Found;
+	uint32 Index;
+} bit_scan_result;
+
+inline bit_scan_result
+FindLeastSignificantSetBit(uint32 Value)
+{
+	bit_scan_result Result = {};
+
+#if COMPILER_MSVC
+	Result.Found = _BitScanForward((unsigned long*)&Result.Index, Value);
+#elif COMPILER_LLVM || COMPILER_GCC
+	if (Value != 0)
+	{
+		Result.Index = __builtin_ctz(Value); // UB if Value == 0, needs guard
+		Result.Found = true;
+	}
+	else
+		Result.Found = false;
+#else
+	for (s32 Test = 0;
+		Test < 32;
+		++Test)
+	{
+		if (Value & (1 << Test))
+		{
+			Result.Index = Test;
+			Result.Found = true;
+			break;
+		}
+	}
+#endif
+	return(Result);
+}
+
+inline bit_scan_result
+FindMostSignificantSetBit(uint32 Value)
+{
+	bit_scan_result Result = {};
+
+#if COMPILER_MSVC
+	Result.Found = _BitScanReverse((unsigned long*)&Result.Index, Value);
+#elif COMPILER_LLVM || COMPILER_GCC
+	if (Value != 0)
+	{
+		Result.Index = 31 - __builtin_clz(Value);
+		Result.Found = true;
+	}
+	else
+		Result.Found = false;
+#else
+	for (s32 Test = 32;
+		Test > 0;
+		--Test)
+	{
+		if (Value & (1 << (Test - 1)))
+		{
+			Result.Index = Test - 1;
+			Result.Found = true;
+			break;
+		}
+	}
+#endif
 	return(Result);
 }
