@@ -3,23 +3,20 @@
 #if !defined(COMPILER_MSVC)
 #define COMPILER_MSVC 0
 #endif
-
 #if !defined(COMPILER_LLVM)
 #define COMPILER_LLVM 0
 #endif
 
-
-
-#if !COMPILER_MSVC && !COMPILER_LLVM
 #if defined(__clang__)
+// clang in MSVC or clang standalone
 #undef COMPILER_LLVM
 #define COMPILER_LLVM 1
 #elif defined(_MSC_VER)
+// MSVC (cl.exe)
 #undef COMPILER_MSVC
 #define COMPILER_MSVC 1
 #else
 #error Unknown compiler
-#endif
 #endif
 
 #if COMPILER_MSVC
