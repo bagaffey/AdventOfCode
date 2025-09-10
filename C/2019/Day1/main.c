@@ -5,6 +5,7 @@
 #include <string.h>
 #include <ctype.h>
 #include "app_intrinsics.h"
+#include "app_math.h"
 #ifdef _WIN32
 #include <windows.h>
 #include <wininet.h>
