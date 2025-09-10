@@ -278,3 +278,35 @@ FindMostSignificantSetBit(uint32 Value)
 #endif
 	return(Result);
 }
+
+/*
+ * Consider disabling flush to zero and these other bits, depending on the
+ * needs of the application.
+ */
+internal void
+SetDefaultFPBehavior(void)
+{
+#define FLUSH_TO_ZERO_BIT (1 << 15)
+#define ROUNDING_CONTROL_BITS (3 << 13)
+#define PRECISION_MASK (1 << 12)
+#define UNDERFLOW_MASK (1 << 11)
+#define OVERFLOW_MASK (1 << 10)
+#define DBZ_MASK (1 << 9)
+#define DENORMAL_OP_MASK (1 << 8)
+#define INVALID_OP_MASK (1 << 7)
+#define DENORMALS_ARE_ZERO (1 << 6)
+
+	unsigned int FPControlMask = (FLUSH_TO_ZERO_BIT |
+		// ROUNDING_CONTROL_BITS |
+		PRECISION_MASK |
+		UNDERFLOW_MASK |
+		OVERFLOW_MASK |
+		DBZ_MASK |
+		DENORMAL_OP_MASK |
+		INVALID_OP_MASK |
+		DENORMALS_ARE_ZERO);
+	unsigned int DesiredBits = FPControlMask;
+	unsigned int OldControlBits = _mm_getcsr();
+	unsigned int NewControlBits = (OldControlBits & ~FPControlMask) | DesiredBits;
+	_mm_setcsr(NewControlBits);
+}
