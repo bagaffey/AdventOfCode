@@ -1,10 +1,10 @@
+#include "basetypes.h"
+
 #define counted_pointer(IGNORED)
 
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-#include "basetypes.h"
 
 #pragma pack(push, 1)
     struct bitmap_id
