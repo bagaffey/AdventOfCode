@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
+#include "app_memory.h"
 #include "app_intrinsics.h"
 #include "app_math.h"
 #ifdef _WIN32
