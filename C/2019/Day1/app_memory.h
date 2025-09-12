@@ -127,3 +127,73 @@ NonRestoredArena(void)
 #define PushAndNullTerminate(...) PushAndNullTerminate_(DEBUG_MEMORY_NAME("PushAndNullTerminate") __VA_ARGS__)
 #define BootstrapPushStruct(type, Member, ...) (type *)BootstrapPushSize_(DEBUG_MEMORY_NAME("BootstrapPushSize") sizeof(type), OffsetOf(type, Member), ## __VA_ARGS__)
 
+inline mem_index
+GetEffectiveSizeFor(memory_arena* Arena, mem_index SizeInit, arena_push_params Params)
+{
+	mem_index Size = SizeInit;
+
+	mem_index AlignmentOffset = GetAlignmentOffset(Arena, Params.Alignment);
+	Size += AlignmentOffset;
+	return(Size);
+}
+
+inline mem_index
+GetEffectiveSizeForDefault(memory_arena* Arena, mem_index SizeInit)
+{
+	// C23 does not support function argument defaults
+	return GetEffectiveSizeFor(Arena, SizeInit, DefaultArenaParams());
+}
+
+inline void *
+PushSize_(INTERNAL_MEMORY_PARAM
+	memory_arena* Arena, mem_index SizeInit, arena_push_params Params)
+{
+	void* Result = 0;
+
+	Assert(Params.Alignment <= 128);
+	Assert(IsPow2(Params.Alignment));
+
+	mem_index Size = 0;
+	if (Arena->CurrentBlock)
+		Size = GetEffectiveSizeFor(Arena, SizeInit, Params);
+
+	if (!Arena->CurrentBlock ||
+		((Arena->CurrentBlock->Used + Size) > Arena->CurrentBlock->Size))
+	{
+		Size = SizeInit; // Base automatically aligns
+		if (Arena->AllocationFlags & (PlatformMemory_OverflowCheck |
+			PlatformMemory_UnderflowCheck))
+		{
+			Arena->MinimumBlockSize = 0;
+			Size = AlignPow2(Size, Params.Alignment);
+		}
+		else if (!Arena->MinimumBlockSize)
+			Arena->MinimumBlockSize = 1024 * 1024;
+
+		mem_index BlockSize = Maximum(Size, Arena->MinimumBlockSize);
+
+		platform_memory_block* NewBlock =
+			Platform.AllocateMemory(BlockSize, Arena->AllocationFlags);
+		NewBlock->ArenaPrev = Arena->CurrentBlock;
+		Arena->CurrentBlock = NewBlock;
+		DEBUG_RECORD_BLOCK_ALLOCATION(Arena->CurrentBlock);
+	}
+
+	Assert((Arena->CurrentBlock->Used + Size) <= Arena->CurrentBlock->Size);
+
+	mem_index AlignmentOffset = GetAlignmentOffset(Arena, Params.Alignment);
+	umw OffsetInBlock = Arena->CurrentBlock->Used + AlignmentOffset;
+	Result = Arena->CurrentBlock->Base + OffsetInBlock;
+	Arena->CurrentBlock->Used += Size;
+
+	Assert(Size >= SizeInit);
+
+	Assert(Arena->CurrentBlock->Used <= Arena->CurrentBlock->Size);
+
+	if (Params.Flags & ArenaFlag_ClearToZero)
+		ZeroSize(SizeInit, Result);
+
+	DEBUG_RECORD_ALLOCATION(Arena->CurrentBlock, GUID, Size, SizeInit, OffsetInBlock);
+
+	return (Result);
+}
