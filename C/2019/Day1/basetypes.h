@@ -294,6 +294,18 @@ typedef struct ticket_mutex
 	u64 volatile Serving;
 } ticket_mutex;
 
+typedef union dev_id_value
+{
+	void* Void;
+	u64 U64;
+	u32 U32[2];
+} dev_id_value;
+
+typedef struct dev_id
+{
+	dev_id_value Value[2];
+} dev_id;
+
 #define Pi32 3.14159265359f
 #define Tau32 6.28318530717958647692f
 
