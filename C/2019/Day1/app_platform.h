@@ -7,20 +7,20 @@ extern "C" {
 #endif
 
 #pragma pack(push, 1)
-    struct bitmap_id
+    typedef struct bitmap_id
     {
         u32 Value;
-    };
+    } bitmap_id;
 
-    struct sound_id
+    typedef struct sound_id
     {
         u32 Value;
-    };
+    } sound_id;
 
-    struct font_id
+    typedef struct font_id
     {
         u32 Value;
-    };
+    } font_id;
 #pragma pack(pop)
 
     /*
