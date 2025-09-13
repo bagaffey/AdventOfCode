@@ -7,7 +7,7 @@ typedef DEBUG_APP_FRAME_END(dbg_app_frame_end);
 enum debug_type
 {
 	DebugType_Unknown,
-	
+
 	DebugType_Name,
 
 	DebugType_FrameMarker,
@@ -141,9 +141,15 @@ Event->Name = NameInit
 
 #if PROJ_SLOW
 
-#define TIMED_BLOCK__(GUID, Name) timed_block TimedBlock_##Number(GUID, Name)
-#define TIMED_BLOCK_(GUID, Name) TIMED_BLOCK__(GUID, Name)
-#define TIMED_BLOCK(Name) TIMED_BLOCK_(DEBUG_NAME(Name), Name)
+#define TIMED_BLOCK(GUID, Name) \
+    for (timed_block _tb, *_ptb = &_tb;                         \
+         _ptb != NULL;                                          \
+         timed_block_end(_ptb), _ptb = NULL)                    \
+        for (timed_block_begin(_ptb, GUID, Name); _ptb != NULL; _ptb = NULL)
+// cpp
+//#define TIMED_BLOCK__(GUID, Name) timed_block TimedBlock_##Number(GUID, Name)
+//#define TIMED_BLOCK_(GUID, Name) TIMED_BLOCK__(GUID, Name)
+//#define TIMED_BLOCK(Name) TIMED_BLOCK_(DEBUG_NAME(Name), Name)
 #define TIMED_FUNCTION(...) TIMED_BLOCK_(DEBUG_NAME(__FUNCTION__), (char *)__FUNCTION__)
 #define HUD_TIMED_FUNCTION_(Name, ...) GlobalDebugTable->HUDFunction = Name; TIMED_BLOCK_(Name, (char *)__FUNCTION__)
 #define HUD_TIMED_FUNCTION(...) HUD_TIMED_FUNCTION_(DEBUG_NAME(__FUNCTION__), ## __VA_ARGS__)
@@ -167,6 +173,27 @@ Event->Name = NameInit
 //	}
 //} timed_block;
 
+typedef struct timed_block
+{
+	char* GUID;
+	char* Name;
+} timed_block;
+
+global inline
+void timed_block_begin(timed_block* tb, char* GUID, char* Name)
+{
+	tb->GUID = GUID;
+	tb->Name = Name;
+	BEGIN_BLOCK_(GUID, Name);
+}
+
+global inline
+void timed_block_end(timed_block* tb)
+{
+	(void)tb; // unused, for symmetry
+	END_BLOCK();
+}
+
 #else
 
 #define TIMED_BLOCK(...)
@@ -176,5 +203,229 @@ Event->Name = NameInit
 #define HUD_TIMED_FUNCTION(...)
 
 #endif
+
+#else
+
+#define DEBUGSetEventRecording(...)
+#define FRAME_MARKER(...)
+
+#endif
+
+#ifdef __cplusplus
+}
+#endif
+
+#if defined(__cplusplus) && PROJ_INTERNAL
+
+extern dbg_event* DEBUGGlobalEditEvent;
+
+#define DEBUGValueSetEventData_(type) \
+inline void \
+DEBUGValueSetEventData(dbg_event *Event, type Ignored, void *Value) \
+{ \
+Event->Type = DebugType_##type; \
+if(GlobalDebugTable->EditEvent.GUID == Event->GUID) \
+{ \
+    *(type *)Value = GlobalDebugTable->EditEvent.Value_##type; \
+} \
+\
+Event->Value_##type = *(type *)Value; \
+}
+
+DEBUGValueSetEventData_(r32);
+DEBUGValueSetEventData_(u32);
+DEBUGValueSetEventData_(umm);
+DEBUGValueSetEventData_(s32);
+DEBUGValueSetEventData_(v2);
+DEBUGValueSetEventData_(v3);
+DEBUGValueSetEventData_(v4);
+DEBUGValueSetEventData_(rectangle2);
+DEBUGValueSetEventData_(rectangle3);
+DEBUGValueSetEventData_(bitmap_id);
+DEBUGValueSetEventData_(sound_id);
+DEBUGValueSetEventData_(font_id);
+
+#define DEBUGValueSetEventData2_(as_type,type) \
+inline void \
+DEBUGValueSetEventData(dbg_event *Event, type Ignored, void *Value) \
+{ \
+Event->Type = DebugType_##as_type; \
+if(GlobalDebugTable->EditEvent.GUID == Event->GUID) \
+{ \
+    *(type *)Value = (type)GlobalDebugTable->EditEvent.Value_##as_type; \
+} \
+\
+Event->Value_##as_type = *(type *)Value; \
+}
+DEBUGValueSetEventData2_(u32, u16);
+
+struct debug_data_block
+{
+	debug_data_block(char* GUID, char* Name)
+	{
+		RecordDebugEvent(DebugType_OpenDataBlock, GUID, Name);
+		//Event->DebugID = ID;
+	}
+
+	~debug_data_block(void)
+	{
+		RecordDebugEvent(DebugType_CloseDataBlock, DEBUG_NAME("End Data Block"), "End Data Block");
+	}
+};
+
+#define DEBUG_DATA_BLOCK(Name) debug_data_block DataBlock__(DEBUG_NAME(Name), Name)
+#define DEBUG_BEGIN_DATA_BLOCK(Name) RecordDebugEvent(DebugType_OpenDataBlock, DEBUG_NAME(Name), Name)
+#define DEBUG_END_DATA_BLOCK(Name) RecordDebugEvent(DebugType_CloseDataBlock, DEBUG_NAME("End Data Block"), "End Data Block")
+
+internal void DEBUGEditEventData(char* GUID, dbg_event* Event);
+
+#define GET_DEBUG_MOUSE_P() GlobalDebugTable->MouseP
+#define SET_DEBUG_MOUSE_P(P) GlobalDebugTable->MouseP = (P)
+
+#define DEBUG_VALUE(Value)  \
+{ \
+RecordDebugEvent(DebugType_Unknown, DEBUG_NAME(#Value), #Value);                              \
+DEBUGValueSetEventData(Event, Value, (void *)&(Value)); \
+}
+
+#define DEBUG_B32(Value)  \
+{ \
+RecordDebugEvent(DebugType_Unknown, DEBUG_NAME(#Value), #Value);                              \
+DEBUGValueSetEventData(Event, (s32)0, (void *)&Value); \
+Event->Type = DebugType_b32; \
+}
+
+#define DEBUG_STRING(Value)  \
+{ \
+RecordDebugEvent(DebugType_Unknown, DEBUG_NAME(#Value), #Value);                              \
+Event->Value_string_ptr = Value; \
+Event->Type = DebugType_string_ptr; \
+}
+
+#define DEBUG_UI_ELEMENT(Type, Name) \
+{ \
+RecordDebugEvent(Type, #Name, #Name);                   \
+}
+
+#define DEBUG_UI_HUD(Value)  \
+{ \
+RecordDebugEvent(DebugType_Unknown, DEBUG_NAME(#Value), #Value);                              \
+Event->Value_u32 = Value; \
+Event->Type = DebugType_SetHUD; \
+}
+
+#define DEBUG_BEGIN_ARRAY(...)
+#define DEBUG_END_ARRAY(...)
+
+inline dev_id DEBUG_POINTER_ID(void* Pointer)
+{
+	dev_id ID = { Pointer };
+
+	return(ID);
+}
+
+#define DEBUG_UI_ENABLED 1
+
+internal void DEBUG_HIT(dev_id ID, r32 ZValue);
+internal b32 DEBUG_HIGHLIGHTED(dev_id ID, v4* Color);
+internal b32 DEBUG_REQUESTED(dev_id ID);
+
+#define DEBUG_ARENA_NAME(Ar, Name) \
+{ \
+RecordDebugEvent(DebugType_ArenaSetName, DEBUG_NAME("ArenaSetName"), Name); \
+Event->Value_debug_memory_op.Block = (Ar)->CurrentBlock; \
+Event->Value_debug_memory_op.AllocatedSize = 0; \
+}
+
+#define DEBUG_ARENA_SUPPRESS(Ar, Name) \
+{ \
+RecordDebugEvent(DebugType_ArenaSetName, DEBUG_NAME("ArenaSuppress"), Name); \
+Event->Value_debug_memory_op.Block = (Ar)->CurrentBlock; \
+Event->Value_debug_memory_op.AllocatedSize = 1; \
+}
+
+#define DEBUG_RECORD_BLOCK_FREE(Bl) \
+{ \
+RecordDebugEvent(DebugType_ArenaBlockFree, DEBUG_NAME("ArenaBlockFree"), "BlockFree"); \
+Event->Value_debug_memory_op.Block = (Bl); \
+}
+
+#define DEBUG_RECORD_BLOCK_TRUNCATE(Bl) \
+{ \
+RecordDebugEvent(DebugType_ArenaBlockTruncate, DEBUG_NAME("ArenaBlockTruncate"), "Truncation"); \
+Event->Value_debug_memory_op.Block = (Bl); \
+Event->Value_debug_memory_op.AllocatedSize = (Bl)->Used; \
+}
+
+#define DEBUG_RECORD_BLOCK_ALLOCATION(Bl) \
+{ \
+RecordDebugEvent(DebugType_ArenaBlockAllocate, DEBUG_NAME("ArenaBlockAllocate"), "BlockAlloc"); \
+Event->Value_debug_memory_block_op.ArenaLookupBlock = (Bl)->ArenaPrev; \
+Event->Value_debug_memory_block_op.Block = (Bl); \
+Event->Value_debug_memory_block_op.AllocatedSize = (Bl)->Size; \
+}
+
+#define DEBUG_RECORD_ALLOCATION(Bl, GUID, ASize, USize, BlockOffset) \
+{ \
+RecordDebugEvent(DebugType_ArenaAllocate, GUID, "Allocation"); \
+Event->Value_debug_memory_op.Block = (Bl); \
+Event->Value_debug_memory_op.AllocatedSize = (ASize); \
+Event->Value_debug_memory_op.OffsetInBlock = (BlockOffset); \
+}
+
+#else
+
+inline dev_id DEBUG_POINTER_ID(void* /*Pointer - not used*/)
+{
+	dev_id NullID = {};
+	return(NullID);
+}
+
+#ifdef TIME_BLOCK
+#undef TIME_BLOCK
+#define TIMED_BLOCK(...)
+#endif
+#ifdef TIMED_FUNCTION
+#undef TIMED_FUNCTION
+#define TIMED_FUNCTION(...)
+#endif
+#ifdef BEGIN_BLOCK
+#undef BEGIN_BLOCK
+#define BEGIN_BLOCK(...)
+#endif
+#ifdef END_BLOCK
+#undef END_BLOCK
+#define END_BLOCK(...)
+#endif
+
+#ifdef HUD_TIMED_FUNCTION
+#undef HUD_TIMED_FUNCTION
+#define HUD_TIMED_FUNCTION(...)
+#endif
+
+#define GET_DEBUG_MOUSE_P(...)
+#define SET_DEBUG_MOUSE_P(...)
+
+#define DEBUG_DATA_BLOCK(...)
+#define DEBUG_VALUE(...)
+#define DEBUG_BEGIN_ARRAY(...)
+#define DEBUG_END_ARRAY(...)
+#define DEBUG_UI_ENABLED 0
+#define DEBUG_HIT(...)
+#define DEBUG_HIGHLIGHTED(...) 0
+#define DEBUG_REQUESTED(...) 0
+#define DEBUG_BEGIN_DATA_BLOCK(...)
+#define DEBUG_END_DATA_BLOCK(...)
+#define DEBUG_B32(...)
+#define DEBUG_STRING(...)
+#define DEBUG_UI_HUD(...)
+#define DEBUG_UI_ELEMENT(...)
+
+#define DEBUG_ARENA_NAME(...)
+#define DEBUG_RECORD_BLOCK_ALLOCATION(...)
+#define DEBUG_RECORD_BLOCK_FREE(...)
+#define DEBUG_RECORD_BLOCK_TRUNCATE(...)
+#define DEBUG_RECORD_ALLOCATION(...)
+#define DEBUG_ARENA_SUPPRESS(...)
 
 #endif
