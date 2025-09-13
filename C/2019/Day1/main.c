@@ -1,4 +1,5 @@
 #include "app_platform.h"
+#include "app_shared.h"
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
