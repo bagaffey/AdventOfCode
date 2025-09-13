@@ -352,6 +352,8 @@ typedef struct dev_id
 #define Align8(Value) (((Value) + 7) & ~7)
 #define Align16(Value) (((Value) + 15) & ~15)
 
+#define ArrayCount(Array) (sizeof(Array) / sizeof((Array)[0]))
+
 inline xbool32 IsPow2(u32 Value)
 {
 	xbool32 Result = ((Value != 0) && ((Value & (Value - 1)) == 0));
@@ -379,6 +381,13 @@ inline uint64 AtomicAddU64(uint64 volatile* Value, uint64 Addend)
 	return(Result);
 }
 
+inline u32 GetThreadID(void)
+{
+	u8* ThreadLocalStorage = (u8*)__readgsqword(0x30); // TEB base
+	u32 ThreadID = *(u32*)(ThreadLocalStorage + 0x48); // Thread ID offset
+	return(ThreadID);
+}
+
 #elif COMPILER_LLVM
 #define CompletePreviousReadsBeforeFutureReads asm volatile("" ::: "memory")
 #define CompletePreviousWritesBeforeFutureWrites asm volatile("" ::: "memory")
@@ -400,6 +409,47 @@ inline uint64 AtomicAddU64(uint64 volatile* Value, uint64 Addend)
 	return(Result);
 }
 #endif
+
+// I want to move this to a platform layer.
+inline u32 GetThreadID(void)
+{
+#if COMPILER_MSVC
+	u8* ThreadLocalStorage = (u8*)__readgsqword(0x30);
+	u32 ThreadID = *(u32*)(ThreadLocalStorage + 0x48);
+#elif defined(_MSC_VER) && COMPILER_LLVM
+	u32 ThreadID;
+	__asm__(
+		"movq %%gs:0x30, %%rax\n\t"   // load TEB
+		"movl 0x48(%%rax), %0"        // fetch UniqueThreadID at offset 0x48
+		: "=r"(ThreadID)
+		:
+		: "rax"
+	);
+	return ThreadID;
+#elif defined(__APPLE__) && defined(__x86_64__)
+	u32 ThreadID;
+	__asm__("mov %%gs:0x00,%0" : "=r"(ThreadID));
+	return ThreadID;
+
+#elif defined(__i386__)
+	u32 ThreadID;
+	__asm__("mov %%gs:0x08,%0" : "=r"(ThreadID));
+	return ThreadID;
+
+#elif defined(__x86_64__) && defined(__linux__)
+	u32 ThreadID;
+	__asm__("mov %%fs:0x10,%0" : "=r"(ThreadID));
+	return ThreadID;
+
+#elif defined(__MINGW32__) || defined(__MINGW64__)
+	// Portable Windows fallback for clang+MinGW
+	return (u32)GetCurrentThreadId();
+
+#else
+#error Unsupported platform
+#endif
+	return(ThreadID);
+}
 
 inline void
 BeginTicketMutex(ticket_mutex* Mutex)
