@@ -862,3 +862,71 @@ FormatString(umw DestSize, char* Dest, char* Format, ...)
     return (Result);
 }
 
+internal u64
+MurmurHashUpdate(u64 h, u64 k)
+{
+    // Based on the 128-bit MurmurHash from MurmurHash3, may need a better implementation
+
+    u64 c1 = 0x87c37b91114253d5ULL;
+    u64 c2 = 0x4cf5ad432745937fULL;
+    u64 m1 = 5;
+    u64 n1 = 0x52dce729ULL;
+
+    k *= c1;
+    k = RotateLeftU64(k, 31);
+    k *= c2;
+
+    h ^= k;
+
+    h = RotateLeftU64(h, 27);
+    h = h * m1 + n1;
+
+    return(h);
+}
+
+internal u64
+MurmurHashFinalize(u64 h)
+{
+    // Based on the 128-bit MurmurHash from MurmurHash3
+
+    h ^= h >> 33ULL;
+    h *= 0xff51afd7ed558ccdULL;
+    h ^= h >> 33ULL;
+    h *= 0xc4ceb9fe1a85ec53ULL;
+    h ^= h >> 33ULL;
+
+    return(h);
+}
+
+internal u64
+CheckSumOf(buffer Buffer, u64 Seed)
+{
+    // TODO: Add default arg of 1234 ?
+    // Needs special case handling for big-endian machines
+
+    u64 Result = Seed;
+
+    u64 Count64 = (Buffer.Count / sizeof(u64));
+    u64 Count8 = Buffer.Count - (Count64 * sizeof(u64));
+
+    // This may be unaligned... if this has performance issues
+    // We may need to move to an aligned memory location.
+    u64* At = (u64*)Buffer.Data;
+    for (u64 Index = 0;
+        Index < Count64;
+        ++Index)
+    {
+        Result = MurmurHashUpdate(Result, *At++);
+    }
+
+    if (Count8)
+    {
+        u64 Residual = 0;
+        Copy(Count8, At, &Residual);
+        Result = MurmurHashUpdate(Result, Residual);
+    }
+
+    Result = MurmurHashFinalize(Result);
+
+    return(Result);
+}
