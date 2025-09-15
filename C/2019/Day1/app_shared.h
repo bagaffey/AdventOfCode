@@ -848,3 +848,17 @@ FormatStringList(umw DestSize, char* DestInitial, char* Format, va_list ArgList)
     umw Result = Dest.At - DestInitial;
     return (Result);
 }
+
+// this needs to return a string struct
+internal umw
+FormatString(umw DestSize, char* Dest, char* Format, ...)
+{
+    va_list ArgList;
+
+    va_start(ArgList, Format);
+    umw Result = FormatStringList(DestSize, Dest, Format, ArgList);
+    va_end(ArgList);
+
+    return (Result);
+}
+
