@@ -1,12 +1,12 @@
 #include "app_platform.h"
+#include "app_debug_interface.h"
+#include "app_intrinsics.h"
 #include "app_shared.h"
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
-#include "app_debug_interface.h"
-#include "app_intrinsics.h"
 #include "app_math.h"
 //#include "app_memory.h"
 #ifdef _WIN32
