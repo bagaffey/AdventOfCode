@@ -1,3 +1,5 @@
+#include <stdarg.h>
+
 typedef struct adler_32
 {
     u32 S1;
@@ -9,13 +11,13 @@ typedef struct adler_32
 
 #define CopyArray(Count, Source, Dest) Copy((Count)*sizeof(*(Source)), (Source), (Dest))
 internal void*
-Copy(mem_index Size, void* SourceInit, void* DestInit)
+Copy(mem_index Size, void* SourceInitial, void* DestInitial)
 {
-    u8* Source = (u8*)SourceInit;
-    u8* Dest = (u8*)DestInit;
+    u8* Source = (u8*)SourceInitial;
+    u8* Dest = (u8*)DestInitial;
     while (Size--) { *Dest++ = *Source++; }
 
-    return(DestInit);
+    return(DestInitial);
 }
 
 #define ZeroStruct(Instance) ZeroSize(sizeof(Instance), &(Instance))
@@ -410,4 +412,439 @@ S32FromZ(char* At)
     char* Ignored = At;
     s32 Result = S32FromZInternal(&Ignored);
     return(Result);
+}
+
+typedef struct format_buffer
+{
+    umw Size;
+    char* At;
+} format_buffer;
+
+internal void 
+OutChar(format_buffer* Dest, char Value)
+{
+    if (Dest->Size)
+    {
+        --Dest->Size;
+        *Dest->At++ = Value;
+    }
+}
+
+internal void
+OutChars(format_buffer* Dest, char* Value)
+{
+    while (*Value)
+    {
+        OutChar(Dest, *Value++);
+    }
+}
+
+#define ReadVarArgUnsignedInteger(Length, ArgList) ((Length) == 8) ? va_arg(ArgList, u64) : (u64)va_arg(ArgList, u32)
+#define ReadVarArgSignedInteger(Length, ArgList) ((Length) == 8) ? va_arg(ArgList, s64) : (s64)va_arg(ArgList, s32)
+#define ReadVarArgFloat(Length, ArgList) va_arg(ArgList, f64)
+
+char LowerHexChars[] = "0123456789abcedf";
+char UpperHexChars[] = "0123456789ABCDEF";
+char DecChars[] = "0123456789";
+
+internal void
+U64ToASCII(format_buffer* Dest, u64 Value, u32 Base, char* Digits)
+{
+    Assert(Base != 0);
+
+    char* Start = Dest->At;
+    do
+    {
+        u64 DigitIndex = (Value % Base);
+        char Digit = Digits[DigitIndex];
+        OutChar(Dest, Digit);
+        Value /= Base;
+    } while (Value != 0);
+    char* End = Dest->At;
+
+    while (Start < End)
+    {
+        --End;
+        char Temp = *End;
+        *End = *Start;
+        *Start = Temp;
+        ++Start;
+    }
+}
+
+internal void
+F64ToASCII(format_buffer* Dest, f64 Value, u32 Precision)
+{
+    if (Value < 0)
+    {
+        OutChar(Dest, '-');
+        Value = -Value;
+    }
+
+    u64 IntegerPart = (u64)Value;
+    Value -= (f64)IntegerPart;
+    U64ToASCII(Dest, IntegerPart, 10, DecChars);
+
+    OutChar(Dest, '.');
+
+    // This needs fixings, b/c it's not accurate
+    for (u32 PrecisionIndex = 0;
+        PrecisionIndex < Precision;
+        ++PrecisionIndex)
+    {
+        Value *= 10.0f;
+        u32 Integer = (u32)Value;
+        Value -= (f32)Integer;
+        OutChar(Dest, DecChars[Integer]);
+    }
+}
+
+internal umw
+FormatStringList(umw DestSize, char* DestInitial, char* Format, va_list ArgList)
+{
+    format_buffer Dest = { DestSize, DestInitial };
+    if (Dest.Size)
+    {
+        char* At = Format;
+        while (At[0])
+        {
+            if (*At == '%')
+            {
+                ++At;
+
+                bool32 ForceSign = false;
+                bool32 PadWithZeros = false;
+                bool32 LeftJustify = false;
+                bool32 PositiveSignIsBlank = false;
+                bool32 AnnotateIfNotZero = false;
+
+                bool32 Parsing = true;
+
+                Parsing = true;
+                while (Parsing)
+                {
+                    switch (*At)
+                    {
+                    case '+': { ForceSign = true; } break;
+                    case '0': { PadWithZeros = true; } break;
+                    case '-': { LeftJustify = true; } break;
+                    case ' ': { PositiveSignIsBlank = true; } break;
+                    case '#': { AnnotateIfNotZero = true; } break;
+                    default: { Parsing = false; } break;
+                    }
+
+                    if (Parsing)
+                    {
+                        ++At;
+                    }
+                }
+
+                //bool32 WidthSpecified = false; // This is not used at the moment.
+                s32 Width = 0;
+                if (*At == '*')
+                {
+                    Width = va_arg(ArgList, int);
+                    //WidthSpecified = true;
+                    ++At;
+                }
+                else if ((*At >= '0') && (*At <= '9'))
+                {
+                    Width = S32FromZInternal(&At);
+                    //WidthSpecified = true;
+                }
+
+                bool32 PrecisionSpecified = false;
+                u32 Precision = 0;
+                if (*At == '.')
+                {
+                    ++At;
+
+                    if (*At == '*')
+                    {
+                        Precision = va_arg(ArgList, int);
+                        PrecisionSpecified = true;
+                        ++At;
+                    }
+                    else if ((*At >= '0') && (*At <= '9'))
+                    {
+                        Precision = S32FromZInternal(&At);
+                        PrecisionSpecified = true;
+                    }
+                    else
+                        Assert(!"Malformed precision specified");
+                }
+
+                // Defaults to non-specified precisions to a default
+                if (!PrecisionSpecified)
+                    Precision = 6;
+
+                u32 IntegerLength = 4;
+                // u32 FloatLength = 8; // floats are promoted to doubles regardless as varargs
+                // Set different vals here
+                if ((At[0] == 'h') && (At[1] == 'h'))
+                    At += 2;
+                else if ((At[0] == 'l') && (At[1] == 'l'))
+                    At += 2;
+                else if (*At == 'h')
+                    ++At;
+                else if (*At == 'l')
+                {
+                    IntegerLength = 8;
+                    ++At;
+                }
+                else if (*At == 'j')
+                    ++At;
+                else if (*At == 'z')
+                    ++At;
+                else if (*At == 't')
+                    ++At;
+                else if (*At == 'L')
+                    ++At;
+
+                char TempBuffer[64];
+                char* Temp = TempBuffer;
+                format_buffer TempDest = { ArrayCount(TempBuffer), Temp };
+                char* Prefix = "";
+                bool32 IsFloat = false;
+
+                switch (*At)
+                {
+                case 'd':
+                case 'i':
+                {
+                    s64 Value = ReadVarArgSignedInteger(IntegerLength, ArgList);
+                    bool32 WasNegative = (Value < 0);
+                    if (WasNegative)
+                        Value = -Value;
+                    U64ToASCII(&TempDest, (u64)Value, 10, DecChars);
+
+                    // DRY: This should be a common routine after floating point is available
+                    if (WasNegative)
+                        Prefix = "-";
+                    else if (ForceSign)
+                    {
+                        Assert(!PositiveSignIsBlank);
+                        Prefix = "+";
+                    }
+                    else if (PositiveSignIsBlank)
+                        Prefix = " ";
+                } break;
+
+                case 'u':
+                {
+                    u64 Value = ReadVarArgUnsignedInteger(IntegerLength, ArgList);
+                    U64ToASCII(&TempDest, Value, 10, DecChars);
+                } break;
+
+                case 'm':
+                {
+                    umw Value = va_arg(ArgList, umw);
+                    char* Suffix = "b ";
+                    if (Value >= Gigabytes(1))
+                    {
+                        Suffix = "gb";
+                        Value = (Value + Gigabytes(1) - 1) / Gigabytes(1);
+                    }
+                    else if (Value >= Megabytes(1))
+                    {
+                        Suffix = "mb";
+                        Value = (Value + Megabytes(1) - 1) / Megabytes(1);
+                    }
+                    else if (Value >= Kilobytes(1))
+                    {
+                        Suffix = "kb";
+                        Value = (Value + Kilobytes(1) - 1) / Kilobytes(1);
+                    }
+                    U64ToASCII(&TempDest, Value, 10, DecChars);
+                    OutChars(&TempDest, Suffix);
+                } break;
+
+                case 'o':
+                {
+                    u64 Value = ReadVarArgUnsignedInteger(IntegerLength, ArgList);
+                    U64ToASCII(&TempDest, Value, 8, DecChars);
+                    if (AnnotateIfNotZero && (Value != 0))
+                    {
+                        Prefix = "0";
+                    }
+                } break;
+
+                case 'x':
+                {
+                    u64 Value = ReadVarArgUnsignedInteger(IntegerLength, ArgList);
+                    U64ToASCII(&TempDest, Value, 16, LowerHexChars);
+                    if (AnnotateIfNotZero && (Value != 0))
+                    {
+                        Prefix = "0x";
+                    }
+                } break;
+
+                case 'X':
+                {
+                    u64 Value = ReadVarArgUnsignedInteger(IntegerLength, ArgList);
+                    U64ToASCII(&TempDest, Value, 16, UpperHexChars);
+                    if (AnnotateIfNotZero && (Value != 0))
+                    {
+                        Prefix = "0X";
+                    }
+                } break;
+
+                // Basic decimal output, need to implement more floating point print types.
+                case 'f':
+                case 'F':
+                case 'e':
+                case 'E':
+                case 'g':
+                case 'G':
+                case 'a':
+                case 'A':
+                {
+                    f64 Value = ReadVarArgFloat(FloatLength, ArgList);
+                    F64ToASCII(&TempDest, Value, Precision);
+                    IsFloat = true;
+                } break;
+
+                case 'c':
+                {
+                    int Value = va_arg(ArgList, int);
+                    OutChar(&TempDest, (char)Value);
+                } break;
+
+                case 's':
+                {
+                    char* String = va_arg(ArgList, char*);
+
+                    // Needs to obey precision, width
+
+                    Temp = String;
+                    if (PrecisionSpecified)
+                    {
+                        TempDest.Size = 0;
+                        for (char* Scan = String;
+                            *Scan && (TempDest.Size < Precision);
+                            ++Scan)
+                        {
+                            ++TempDest.Size;
+                        }
+                    }
+                    else
+                        TempDest.Size = StringLength(String);
+                    
+                    TempDest.At = String + TempDest.Size;
+                } break;
+
+                case 'S':
+                {
+                    string String = va_arg(ArgList, string);
+
+                    // needs to obey precisioin and width
+
+                    Temp = (char*)String.Data;
+                    TempDest.Size = String.Count;
+                    if (PrecisionSpecified && (TempDest.Size > Precision))
+                        TempDest.Size = Precision;
+                    TempDest.At = Temp + TempDest.Size;
+                } break;
+
+                case 'p':
+                {
+                    void* Value = va_arg(ArgList, void*);
+                    U64ToASCII(&TempDest, *(umw*)&Value, 16, LowerHexChars);
+                } break;
+
+                case 'n':
+                {
+                    int* TabDest = va_arg(ArgList, int*);
+                    *TabDest = (int)(Dest.At - DestInitial);
+                } break;
+
+                case '%':
+                {
+                    OutChar(&Dest, '%');
+                } break;
+
+                default:
+                {
+                    Assert(!"Unrecognized format specifier");
+                } break;
+
+                }
+
+                if (TempDest.At - Temp)
+                {
+                    smw UsePrecision = Precision;
+                    if (IsFloat || !PrecisionSpecified)
+                        UsePrecision = (TempDest.At - Temp);
+
+                    smw PrefixLength = StringLength(Prefix);
+                    smw UseWidth = Width;
+                    smw ComputedWidth = UsePrecision + PrefixLength;
+
+                    if (UseWidth < ComputedWidth)
+                        UseWidth = ComputedWidth;
+
+                    if (PadWithZeros)
+                    {
+                        Assert(!LeftJustify);
+                        LeftJustify = false;
+                    }
+
+                    if (!LeftJustify)
+                    {
+                        while (UseWidth > (UsePrecision + PrefixLength))
+                        {
+                            OutChar(&Dest, PadWithZeros ? '0' : ' ');
+                            --UseWidth;
+                        }
+                    }
+
+                    for (char* Pre = Prefix;
+                        *Pre && UseWidth;
+                        ++Pre)
+                    {
+                        OutChar(&Dest, *Pre);
+                        --UseWidth;
+                    }
+
+                    if (UsePrecision > UseWidth)
+                        UsePrecision = UseWidth;
+                    while (UsePrecision > (TempDest.At - Temp))
+                    {
+                        OutChar(&Dest, '0');
+                        --UsePrecision;
+                        --UseWidth;
+                    }
+                    while (UsePrecision && (TempDest.At != Temp))
+                    {
+                        OutChar(&Dest, *Temp++);
+                        --UsePrecision;
+                        --UseWidth;
+                    }
+
+                    if (LeftJustify)
+                    {
+                        while (UseWidth)
+                        {
+                            OutChar(&Dest, ' ');
+                            --UseWidth;
+                        }
+                    }
+                }
+
+                if (*At)
+                    ++At;
+
+            }
+            else
+                OutChar(&Dest, *At++);
+        }
+
+        if (Dest.Size)
+            Dest.At[0] = 0;
+        else
+            Dest.At[-1] = 0;
+    }
+
+    umw Result = Dest.At - DestInitial;
+    return (Result);
 }
