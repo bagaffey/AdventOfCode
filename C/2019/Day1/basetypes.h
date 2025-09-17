@@ -198,9 +198,9 @@ typedef union v3s
 {
 	struct
 	{
-		s32 x;
-		s32 y;
-		s32 z;
+		s32 X;
+		s32 Y;
+		s32 Z;
 	};
 	s32 E[3];
 } v3s;
