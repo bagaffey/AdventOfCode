@@ -3,6 +3,8 @@
 #include "app_intrinsics.h"
 #include "app_math.h"
 #include "app_shared.h"
+#include "app_simd.h"
+#include "app_random.h"
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
