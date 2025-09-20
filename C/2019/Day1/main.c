@@ -5,12 +5,13 @@
 #include "app_shared.h"
 #include "app_simd.h"
 #include "app_random.h"
+#include "app_memory.h"
+#include "app_stream.h"
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
-//#include "app_memory.h"
 #ifdef _WIN32
 #include <windows.h>
 #include <wininet.h>
