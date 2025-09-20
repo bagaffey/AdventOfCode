@@ -462,7 +462,7 @@ f32_4x_AllFalse(f32_4x Comparison)
 }
 
 inline f32_4x
-f32_4x_AndNot(f32_4x A, f32_4x B) // NOTE(casey): _B_ gets notted
+f32_4x_AndNot(f32_4x A, f32_4x B) // B gets notted
 {
     f32_4x Result;
 
@@ -476,7 +476,7 @@ f32_4x_Select(f32_4x A, f32_4x Mask, f32_4x B)
 {
     f32_4x Result;
 
-    // TODO(casey): Use blend now that we are SSE 4.
+    // Requires SSE 4.
     Result.P = _mm_or_ps(_mm_andnot_ps(Mask.P, A.P), _mm_and_ps(Mask.P, B.P));
 
     return (Result);

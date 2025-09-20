@@ -144,7 +144,7 @@ GetEffectiveSizeForDefault(memory_arena* Arena, mem_index SizeInit)
 	return GetEffectiveSizeFor(Arena, SizeInit, DefaultArenaParams());
 }
 
-inline void *
+internal inline void *
 PushSize_(INTERNAL_MEMORY_PARAM
 	memory_arena* Arena, mem_index SizeInit, arena_push_params Params)
 {
