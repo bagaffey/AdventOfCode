@@ -5,7 +5,7 @@ project(aoc_c23 C)
 if (MSVC)
   add_compile_options(/W4)
 else()
-  add_compile_options(-Wall -Wextra -Wpedantic -Wconversion -Wsign-conversion -Wshadow)
+  add_compile_options(-Wall -Wextra -Wpedantic -Wconversion -Wsign-conversion -Wshadow -Wno-unused-function)
 endif()
 
 add_compile_definitions(
@@ -15,13 +15,13 @@ add_compile_definitions(
   COMPILER_CLANG_CL=$<IF:$<AND:$<C_COMPILER_ID:Clang>,$<BOOL:${MSVC}>>,1,0>
 )
 
-
 # ---- Select C23 explicitly per compiler
 if (CMAKE_C_COMPILER_ID STREQUAL "Clang")
   if (MSVC)  # clang-cl (MSVC driver)
     add_compile_options(/clang:-std=c23)
   else()     # clang (gcc/clang driver)
     add_compile_options(-std=c23)
+    add_compile_options(/clang:-Wno-unused-function)
   endif()
 elseif (MSVC)
   # MSVC (cl.exe) doesn't support C23; if you build with MSVC, use C17
@@ -60,8 +60,10 @@ foreach(src ${DAY_MAINS})
   get_filename_component(daydir_abs "${daydir}" ABSOLUTE)
   string(REPLACE "/" "_" target "${daydir}")               # e.g., 2019_Day1
 
-  file(GLOB DAY_SOURCES CONFIGURE_DEPENDS "${daydir}/*.c")
-  add_executable(${target} ${DAY_SOURCES})
+  # file(GLOB DAY_SOURCES CONFIGURE_DEPENDS "${daydir}/main.c")
+  # add_executable(${target} ${DAY_SOURCES})
+  # Only build main.c for this day; it will #include all other .c chunks itself
+  add_executable(${target} "${src}")
 
   # Put exe/pdb next to sources and inputs; run from that folder
   set(outdir "${daydir_abs}")
