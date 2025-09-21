@@ -54,7 +54,7 @@ DefaultArenaParams(void)
 	arena_push_params Params;
 	Params.Flags = ArenaFlag_ClearToZero;
 	Params.Alignment = 4;
-	return(Params);
+	return (Params);
 }
 
 inline arena_push_params
@@ -63,7 +63,7 @@ AlignNoClear(u32 Alignment)
 	arena_push_params Params = DefaultArenaParams();
 	Params.Flags &= ~ArenaFlag_ClearToZero;
 	Params.Alignment = Alignment;
-	return(Params);
+	return (Params);
 }
 
 inline arena_push_params
@@ -75,7 +75,7 @@ Align(u32 Alignment, bool32 Clear)
 	else
 		Params.Flags &= ~ArenaFlag_ClearToZero;
 	Params.Alignment = Alignment;
-	return(Params);
+	return (Params);
 }
 
 inline arena_push_params
@@ -83,7 +83,7 @@ NoClear(void)
 {
 	arena_push_params Params = DefaultArenaParams();
 	Params.Flags &= ~ArenaFlag_ClearToZero;
-	return(Params);
+	return (Params);
 }
 
 typedef struct arena_bootstrap_params
@@ -96,7 +96,7 @@ inline arena_bootstrap_params
 DefaultBootstrapParams(void)
 {
 	arena_bootstrap_params Params = {};
-	return(Params);
+	return (Params);
 }
 
 inline arena_bootstrap_params
@@ -104,7 +104,7 @@ NonRestoredArena(void)
 {
 	arena_bootstrap_params Params = DefaultBootstrapParams();
 	Params.AllocationFlags = PlatformMemory_NotRestored;
-	return(Params);
+	return (Params);
 }
 
 #if PROJ_INTERNAL
@@ -134,7 +134,7 @@ GetEffectiveSizeFor(memory_arena* Arena, mem_index SizeInit, arena_push_params P
 
 	mem_index AlignmentOffset = GetAlignmentOffset(Arena, Params.Alignment);
 	Size += AlignmentOffset;
-	return(Size);
+	return (Size);
 }
 
 inline mem_index
@@ -196,4 +196,149 @@ PushSize_(INTERNAL_MEMORY_PARAM
 	DEBUG_RECORD_ALLOCATION(Arena->CurrentBlock, GUID, Size, SizeInit, OffsetInBlock);
 
 	return (Result);
+}
+
+internal void *
+PushCopy_(INTERNAL_MEMORY_PARAM
+	memory_arena* Arena, umw Size, void* Source, arena_push_params Params)
+{
+	void* Result = PushSize_(INTERNAL_MEMORY_PASS Arena, Size, Params);
+	Copy(Size, Source, Result);
+
+	return (Result);
+}
+
+// Implement ??
+// PushStringZ_
+
+internal buffer
+PushBuffer_(INTERNAL_MEMORY_PARAM
+	memory_arena* Arena, umw Size, arena_push_params Params)
+{
+	buffer Result;
+	Result.Count = Size;
+	Result.Data = (u8*) PushSize_(INTERNAL_MEMORY_PASS Arena, Result.Count, Params);
+
+	return (Result);
+}
+
+internal string
+PushCString_(INTERNAL_MEMORY_PARAM
+	memory_arena *Arena, char *Source)
+{
+	string Result;
+	Result.Count = StringLength(Source);
+	Result.Data = (u8*) PushCopy_(INTERNAL_MEMORY_PASS Arena, Result.Count, Source, DefaultArenaParams());
+
+	return (Result);
+}
+
+internal string
+PushString_(INTERNAL_MEMORY_PARAM
+	memory_arena *Arena, string Source)
+{
+	string Result;
+	Result.Count = Source.Count;
+	Result.Data = (u8*) PushCopy_(INTERNAL_MEMORY_PASS Arena, Result.Count, Source.Data, DefaultArenaParams());
+
+	return (Result);
+}
+
+inline char*
+PushAndNullTerminate_(INTERNAL_MEMORY_PARAM
+	memory_arena* Arena, u32 Length, char* Source)
+{
+	char* Dest = (char*) PushSize_(INTERNAL_MEMORY_PASS Arena, Length + 1, NoClear());
+	for (u32 CharIndex = 0;
+		CharIndex < Length;
+		++CharIndex)
+		Dest[CharIndex] = Source[CharIndex];
+	Dest[Length] = 0;
+
+	return (Dest);
+}
+
+inline temporary_memory
+BeginTemporaryMemory(memory_arena* Arena)
+{
+	temporary_memory Result;
+
+	Result.Arena = Arena;
+	Result.Block = Arena->CurrentBlock;
+	Result.Used = Arena->CurrentBlock ? Arena->CurrentBlock->Used : 0;
+
+	++Arena->TempCount;
+
+	return (Result);
+}
+
+inline void
+FreeLastBlock(memory_arena* Arena)
+{
+	platform_memory_block* Free = Arena->CurrentBlock;
+	DEBUG_RECORD_BLOCK_FREE(Free);
+	Arena->CurrentBlock = Free->ArenaPrev;
+	Platform.DeallocateMemory(Free);
+}
+
+inline void
+EndTemporaryMemory(temporary_memory TempMemory)
+{
+	memory_arena* Arena = TempMemory.Arena;
+	while (Arena->CurrentBlock != TempMemory.Block)
+	{
+		FreeLastBlock(Arena);
+	}
+
+	if (Arena->CurrentBlock)
+	{
+		Assert(Arena->CurrentBlock->Used >= TempMemory.Used);
+		Arena->CurrentBlock->Used = TempMemory.Used;
+		DEBUG_RECORD_BLOCK_TRUNCATE(Arena->CurrentBlock);
+	}
+
+	Assert(Arena->TempCount > 0);
+	--Arena->TempCount;
+}
+
+inline void
+KeepTemporaryMemory(temporary_memory TempMemory)
+{
+	memory_arena* Arena = TempMemory.Arena;
+
+	Assert(Arena->TempCount > 0);
+	--Arena->TempCount;
+}
+
+inline void
+Clear(memory_arena *Arena)
+{
+	while (Arena->CurrentBlock)
+	{
+		// Do not look at the last block if it is freed.
+		bool32 ThisIsLastBlock = (Arena->CurrentBlock->ArenaPrev == 0);
+		FreeLastBlock(Arena);
+		if (ThisIsLastBlock)
+			break;
+	}
+}
+
+inline void
+CheckArena(memory_arena* Arena)
+{
+	Assert(Arena->TempCount == 0);
+}
+
+inline void*
+BootstrapPushSize_(INTERNAL_MEMORY_PARAM umw StructSize, umw OffsetToArena,
+	arena_bootstrap_params BootstrapParams,
+	arena_push_params Params)
+{
+	memory_arena Bootstrap = {};
+	Bootstrap.AllocationFlags = BootstrapParams.AllocationFlags;
+	Bootstrap.MinimumBlockSize = BootstrapParams.MinimumBlockSize;
+	void* Struct = PushSize_(INTERNAL_MEMORY_PASS & Bootstrap, StructSize, Params);
+	*(memory_arena*)((u8*)Struct + OffsetToArena) = Bootstrap;
+
+	return (Struct);
 }
