@@ -108,7 +108,7 @@ NonRestoredArena(void)
 }
 
 #if PROJ_INTERNAL
-#define DEBUG_MEMORY_LANE(Name) DEBUG_NAME_(__FILE__, __LINE__, __COUNTER__),
+#define DEBUG_MEMORY_NAME(Name) DEBUG_NAME_(__FILE__, __LINE__, __COUNTER__),
 #define INTERNAL_MEMORY_PARAM char *GUID,
 #define INTERNAL_MEMORY_PASS GUID,
 #else

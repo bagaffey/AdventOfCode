@@ -1,12 +1,4 @@
-#include "app_platform.h"
-#include "app_debug_interface.h"
-#include "app_intrinsics.h"
-#include "app_math.h"
-#include "app_shared.h"
-#include "app_simd.h"
-#include "app_random.h"
-#include "app_memory.h"
-#include "app_stream.h"
+#include "app.h"
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -16,6 +8,7 @@
 #include <windows.h>
 #include <wininet.h>
 #endif
+#include "app_stream.c"
 
 #ifdef _MSC_VER
 typedef long ssize_t; // MSVC cl.exe doesn't provide ssize_t in C
