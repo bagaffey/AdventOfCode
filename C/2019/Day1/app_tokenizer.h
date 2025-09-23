@@ -56,3 +56,18 @@ typedef struct tokenizer
     xbool32 Error;
 } tokenizer;
 
+internal xbool32 Parsing(tokenizer* Tokenizer);
+internal void ErrorOnToken(tokenizer* Tokenizer, token OnToken, char* Format, ...);
+internal void Error(tokenizer* Tokenizer, char* Format, ...);
+
+internal xbool32 IsValidToken(token Token);
+internal xbool32 TokenEquals(token Token, char* Match);
+internal token GetTokenRaw(tokenizer* Tokenizer);
+internal token PeekTokenRaw(tokenizer* Tokenizer);
+internal token GetToken(tokenizer* Tokenizer);
+internal token PeekToken(tokenizer* Tokenizer);
+internal token RequireToken(tokenizer* Tokenizer, token_type DesiredType);
+internal token RequiredIdentifier(tokenizer* Tokenizer, token_type DesiredType);
+internal token RequireIntegerRange(tokenizer* Tokenizer, s32 MinValue, s32 MaxValue);
+internal token OptionalToken(tokenizer* Tokenizer, token_type DesiredType);
+internal tokenizer Tokenize(string Input, string FileName);
