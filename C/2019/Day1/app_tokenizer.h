@@ -45,5 +45,14 @@ typedef struct token
 
 typedef struct tokenizer
 {
+    string FileName;
+    s32 ColumnNumber;
+    s32 LineNumber;
+    stream* ErrorStream;
 
+    string Input;
+    char At[2];
+
+    xbool32 Error;
 } tokenizer;
+
