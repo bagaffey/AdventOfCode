@@ -9,6 +9,7 @@
 #include <wininet.h>
 #endif
 #include "app_stream.c"
+#include "app_tokenizer.c"
 
 #ifdef _MSC_VER
 typedef long ssize_t; // MSVC cl.exe doesn't provide ssize_t in C

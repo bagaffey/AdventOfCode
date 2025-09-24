@@ -737,7 +737,7 @@ FormatStringList(umw DestSize, char* DestInitial, char* Format, va_list ArgList)
                 {
                     string String = va_arg(ArgList, string);
 
-                    // needs to obey precisioin and width
+                    // needs to obey precision and width
 
                     Temp = (char*)String.Data;
                     TempDest.Size = String.Count;
