@@ -90,7 +90,7 @@ FlushByte(stream* Buf)
 }
 
 internal umw
-OutOfArgList(INTERNAL_MEMORY_PARAM stream* Dest, char* Format, va_list ArgList)
+OutfArgList(INTERNAL_MEMORY_PARAM stream* Dest, char* Format, va_list ArgList)
 {
 	umw Size = 0;
 

@@ -27,14 +27,15 @@ struct stream
 	stream_chunk* Last;
 };
 
-#if APP_INTERNAL
-#define Outf(...) Outf_(DEBUG_VALUE("Outf"), ## __VA_ARGS__)
+#if PROJ_INTERNAL
+#define Outf(...) Outf_(DEBUG_NAME("Outf"), ## __VA_ARGS__)
 #else
 #define Outf(...) Outf_(__VA_ARGS__)
 #endif
 
 internal umw OutfArgList(INTERNAL_MEMORY_PARAM stream* Dest, char* Format, va_list ArgList);
 internal umw Outf_(INTERNAL_MEMORY_PARAM stream* Dest, char* Format, ...);
+internal stream OnDemandMemoryStream(memory_arena* Memory, stream* Errors); // Errors should default to 0
 
 #define OutStruct(Stream, Type) (type *)OutSize(Stream, sizeof(type));
 #define OutStructCopy(Stream, Instance) OutCopy(Stream, sizeof(Instance), &(Instance))
