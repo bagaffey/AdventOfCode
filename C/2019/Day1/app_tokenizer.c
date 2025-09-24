@@ -57,3 +57,58 @@ ErrorOnToken(tokenizer* Tokenizer, token OnToken, char* Format, ...)
 
 	va_end(ArgList);
 }
+
+internal void
+Error(tokenizer* Tokenizer, char* Format, ...)
+{
+	va_list ArgList;
+	va_start(ArgList, Format);
+
+	token OnToken = PeekTokenRaw(Tokenizer);
+	ErrorOnToken(Tokenizer, OnToken, Format, ArgList);
+
+	va_end(ArgList);
+}
+
+internal void
+Refill(tokenizer* Tokenizer)
+{
+	if (Tokenizer->Input.Count == 0)
+	{
+		Tokenizer->At[0] = 0;
+		Tokenizer->At[1] = 0;
+	}
+	else if (Tokenizer->Input.Count == 1)
+	{
+		Tokenizer->At[0] = Tokenizer->Input.Data[0];
+		Tokenizer->At[1] = 0;
+	}
+	else
+	{
+		Tokenizer->At[0] = Tokenizer->Input.Data[0];
+		Tokenizer->At[1] = Tokenizer->Input.Data[1];
+	}
+}
+
+internal void
+AdvanceChars(tokenizer* Tokenizer, u32 Count)
+{
+	Tokenizer->ColumnNumber += Count;
+	Advance(&Tokenizer->Input, Count);
+	Refill(Tokenizer);
+}
+
+internal xbool32
+TokenEquals(token Token, char* Match)
+{
+	xbool32 Result = AreStringCStringEqual(Token.Text, Match);
+	return (Result);
+}
+
+internal xbool32
+IsValidToken(token Token)
+{
+	xbool32 Result = (Token.Type != Token_Unknown);
+	return (Result);
+}
+
