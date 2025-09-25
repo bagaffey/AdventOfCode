@@ -386,3 +386,17 @@ OptionalToken(tokenizer *Tokenizer, token_type DesiredType)
 
 	return (Result);
 }
+
+internal tokenizer
+Tokenize(string Input, string FileName)
+{
+	tokenizer Result = {};
+
+	Result.FileName = FileName;
+	Result.ColumnNumber = 1;
+	Result.LineNumber = 1;
+	Result.Input = Input;
+	Refill(&Result);
+
+	return (Result);
+}
