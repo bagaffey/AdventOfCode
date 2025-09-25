@@ -16,17 +16,17 @@ typedef long ssize_t; // MSVC cl.exe doesn't provide ssize_t in C
 #endif
 
 // Trim trailing \r or \n
-static char* TrimEOL(char* s) {
-    size_t n = strlen(s);
-    while (n && (s[n - 1] == '\n' || s[n - 1] == '\r')) s[--n] = '\0';
-    return s;
+static char* TrimEOL(char* S) {
+    u32 N = StringLength(S);
+    while (N && (S[N - 1] == '\n' || S[N - 1] == '\r')) S[--N] = '\0';
+    return (S);
 }
 
 // Trim leading and trailing whitespace
 static char* Trim(char* s) {
     while (isspace((unsigned char)*s)) s++;
-    char* e = s + strlen(s) - 1;
-    while (e >= s && isspace((unsigned char)*e)) *e-- = '\0';
+    char* e = s + StringLength(s) - 1;
+    while (e >= s && IsWhitespace((unsigned char)*e)) *e-- = '\0';
     return s;
 }
 
