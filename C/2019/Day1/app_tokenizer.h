@@ -69,5 +69,5 @@ internal token PeekToken(tokenizer* Tokenizer);
 internal token RequireToken(tokenizer* Tokenizer, token_type DesiredType);
 internal token RequiredIdentifier(tokenizer* Tokenizer, token_type DesiredType);
 internal token RequireIntegerRange(tokenizer* Tokenizer, s32 MinValue, s32 MaxValue);
-internal token OptionalToken(tokenizer* Tokenizer, token_type DesiredType);
+internal xbool32 OptionalToken(tokenizer* Tokenizer, token_type DesiredType);
 internal tokenizer Tokenize(string Input, string FileName);
