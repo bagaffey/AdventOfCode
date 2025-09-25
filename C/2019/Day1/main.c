@@ -23,11 +23,16 @@ static char* TrimEOL(char* S) {
 }
 
 // Trim leading and trailing whitespace
-static char* Trim(char* s) {
-    while (isspace((unsigned char)*s)) s++;
-    char* e = s + StringLength(s) - 1;
-    while (e >= s && IsWhitespace((unsigned char)*e)) *e-- = '\0';
-    return s;
+static char* Trim(char* S) {
+    while (IsWhitespace((unsigned char) *S))
+        S++;
+
+    char* e = S + StringLength(S) - 1;
+
+    while (e >= S && IsWhitespace((unsigned char) *e)) 
+        *e-- = '\0';
+
+    return (S);
 }
 
 // getline replacement that works on MSVCRT
@@ -276,6 +281,8 @@ static int CalculateRealFuelRequirement(int module_mass) {
 
 int main(int argc, char** argv) {
     printf("__STDC_VERSION__ = %ld\n", (long)__STDC_VERSION__); // expect 202311 on C23
+
+    SetDefaultFPBehavior();
 
     const char* input_path = (argc >= 2) ? argv[1] : NULL;
 
