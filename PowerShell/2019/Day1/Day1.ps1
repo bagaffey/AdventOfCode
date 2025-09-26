@@ -18,6 +18,7 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
 function Get-MassesFromFile {
+    [OutputType([int[]])]
     param([Parameter(Mandatory)][string] $Path)
 
     if (-not (Test-Path -LiteralPath $Path)) {
@@ -31,6 +32,7 @@ function Get-MassesFromFile {
 }
 
 function Get-MassesFromAOC {
+    [OutputType([int[]])]
     param([Parameter(Mandatory)][string] $CachePath)
 
     $Session = $env:AOC_SESSION
@@ -38,14 +40,26 @@ function Get-MassesFromAOC {
         throw "AOC_SESSION environment variable is not set. Set it and run again."
     }
 
+    $WebSession = New-Object Microsoft.PowerShell.Commands.WebRequestSession
+    $Cookie = New-Object System.Net.Cookie('session', $Session, '/', '.adventofcode.com')
+    $WebSession.Cookies.Add($Cookie)
+    
     $Url = 'https://adventofcode.com/2019/day/1/input'
     $Headers = @{
-        'Cookie'    = "session=$Session"
         'User-Agent' = 'aoc-fetcher/1.0'
+        'Accept'    = 'text/plain'
     }
 
     # Download Input
-    $Resp = Invoke-WebRequest -Uri $url -Headers $Headers
+    try {
+        $Resp = Invoke-WebRequest -Uri $Url -Headers $Headers -WebSession $WebSession -ErrorAction Stop
+    }
+    catch {
+        $status = if ($_.Exception.Response) { $_.Exception.Response.StatusCode.value__ } else { 'n/a' }
+        $reason = if ($_.Exception.Response) { $_.Exception.Response.ReasonPhrase } else { $_.Exception.Message }
+        throw "Download failed. HTTP $status $reason. Check AOC_SESSION, UA, and connectivity."
+    }
+
     $Content = $Resp.Content
 
     $Normalized = ($Content.TrimEnd("`r","`n") + "`n")
@@ -61,6 +75,9 @@ function Get-MassesFromAOC {
 }
 
 function Get-MassesFromCacheOrRedownload {
+    [CmdletBinding()]
+    [OutputType([int[]])]
+    param()
     $CachePath = Join-Path $env:TEMP '2019-12-01-1.dat'
     if (Test-Path -LiteralPath $CachePath) {
         Get-Content -LiteralPath $CachePath -Encoding UTF8 |
@@ -74,11 +91,13 @@ function Get-MassesFromCacheOrRedownload {
 }
 
 function Get-Fuel {
+    [OutputType([int])]
     param([Parameter(Mandatory)][int] $Mass)
     [math]::Floor( $Mass / 3 ) - 2
 }
 
 function Get-RealFuel {
+    [OutputType([int])]
     param([Parameter(Mandatory)][int] $Mass)
     $Fuel = [math]::Floor( $Mass / 3 ) - 2
     if ($Fuel -le 0) {
@@ -99,7 +118,9 @@ try {
     Write-Host ""
     Write-Host "(Part 1) - Transport masses fuel required: $TotalModulesFuel"
 
+    $TotalTripFuel = ($Masses | ForEach-Object { Get-RealFuel -Mass $_ } | Measure-Object -Sum).Sum
     Write-Host ""
+    Write-Host "(Part 2) - Total Fuel for trip required: $TotalTripFuel"
 }
 catch {
     Write-Host "Error: $($_.Exception.Message)"
