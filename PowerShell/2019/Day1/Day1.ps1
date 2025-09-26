@@ -87,3 +87,21 @@ function Get-RealFuel {
     return ($Fuel + (Get-RealFuel -Mass $Fuel))
 }
 
+try {
+    if ($InputPath) {
+        $Masses = Get-MassesFromFile -Path $InputPath
+    }
+    else {
+        $Masses = Get-MassesFromCacheOrRedownload
+    }
+
+    $TotalModulesFuel = ($Masses | ForEach-Object { Get-Fuel -Mass $_ } | Measure-Object -Sum ).Sum
+    Write-Host ""
+    Write-Host "(Part 1) - Transport masses fuel required: $TotalModulesFuel"
+
+    Write-Host ""
+}
+catch {
+    Write-Host "Error: $($_.Exception.Message)"
+    exit 1
+}
