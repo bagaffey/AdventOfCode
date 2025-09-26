@@ -59,3 +59,31 @@ function Get-MassesFromAOC {
         Where-Object { $_ -match '^\d+$' } |
         ForEach-Object { [int]$_ }
 }
+
+function Get-MassesFromCacheOrRedownload {
+    $CachePath = Join-Path $env:TEMP '2019-12-01-1.dat'
+    if (Test-Path -LiteralPath $CachePath) {
+        Get-Content -LiteralPath $CachePath -Encoding UTF8 |
+            ForEach-Object { $_.Trim() } |
+            Where-Object { $_ } |
+            ForEach-Object { [int]$_ }
+    }
+    else {
+        Get-MassesFromAOC -CachePath $CachePath
+    }
+}
+
+function Get-Fuel {
+    param([Parameter(Mandatory)][int] $Mass)
+    [math]::Floor( $Mass / 3 ) - 2
+}
+
+function Get-RealFuel {
+    param([Parameter(Mandatory)][int] $Mass)
+    $Fuel = [math]::Floor( $Mass / 3 ) - 2
+    if ($Fuel -le 0) {
+        return (0)
+    }
+    return ($Fuel + (Get-RealFuel -Mass $Fuel))
+}
+
