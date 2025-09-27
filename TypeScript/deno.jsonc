@@ -1,0 +1,11 @@
+{
+  "tasks": {
+    "run:day01": "deno run --allow-read 2019/day01/run.ts inputs/2019/day01.txt",
+    "run": "deno run --allow-read 2019/day01/run.ts",
+    "test": "deno test",
+    "fmt": "deno fmt",
+    "lint": "deno lint"
+  },
+  "fmt": { "lineWidth": 100 },
+  "lint": { "rules": { "tags": ["recommended"] } }
+}
