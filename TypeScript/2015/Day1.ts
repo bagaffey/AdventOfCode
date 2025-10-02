@@ -125,11 +125,11 @@ if (import.meta.main) {
 
     console.log(`Number of ups: ${ups}`);
     console.log(`Number of downs: ${downs}`);
-    console.log(`Final floor: ${finalFloor}`);
+    console.log(`(Part 1 solution) Final floor: ${finalFloor}`);
     console.log(
       firstBasementPos !== undefined
-        ? `Entered basement at position: ${firstBasementPos}`
-        : `Never entered basement`
+        ? `(Part 2 solution): Entered basement at position: ${firstBasementPos}`
+        : `(Part 2 solution): Never entered basement`
     );
   } catch (e) {
     console.error(`Error: ${e instanceof Error ? e.message : String(e)}`);
