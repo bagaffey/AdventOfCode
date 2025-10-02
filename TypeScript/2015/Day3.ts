@@ -132,7 +132,18 @@ if (import.meta.main) {
     for (let i = 0; i < InputData.length; ++i) {
         const token: string = InputData.charAt(i);
 
+        if (isSantaTurn)
+            ProcessMovement(SantaPosition, token);
+        else
+            ProcessMovement(RoboSantaPosition, token);
 
+        ProcessMovement(NoHelpSantaPosition, token);
+
+        if (isSantaTurn) {
+            isSantaTurn = false;
+        } else {
+            isSantaTurn = true;
+        }
     }
   } catch (e) {
     console.error(`Error: ${e instanceof Error ? e.message : String(e)}`);
