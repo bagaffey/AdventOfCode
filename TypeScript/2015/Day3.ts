@@ -138,6 +138,11 @@ if (import.meta.main) {
     Part2Telemetry.HousesCount.push(PrintPosition(SantaPosition));
 
     for (let i = 0; i < InputData.length; ++i) {
+        if (("^<>v").indexOf(InputData.charAt(i)) == -1) {
+            continue;
+            //console.log(`Position ${i} has invalid character ${InputData.charAt(i)}.`);
+            //console.log(`InputData.length is ${InputData.length}`);
+        }
         const token: string = InputData.charAt(i);
 
         if (isSantaTurn)
@@ -165,6 +170,9 @@ if (import.meta.main) {
                 Part2Telemetry.DistinctHouseCount.push(RoboCurrentAddr);
         }
     }
+
+    console.log(`Part 1: ${Part1Telemetry.DistinctHouseCount.length} houses have received at least 1 present.`);
+    console.log(`Part 2: ${Part2Telemetry.DistinctHouseCount.length} houses have received at least 1 present.`);
   } catch (e) {
     console.error(`Error: ${e instanceof Error ? e.message : String(e)}`);
     Deno.exit(1);
