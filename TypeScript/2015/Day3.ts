@@ -1,4 +1,4 @@
-// deno run --allow-env=AOC_SESSION,TEMP,TMP --allow-read --allow-write --allow-net=adventofcode.com Day2.ts [inputFile]
+// deno run --allow-env=AOC_SESSION,TEMP,TMP --allow-read --allow-write --allow-net=adventofcode.com Day3.ts [inputFile]
 
 import { join } from "https://deno.land/std/path/mod.ts";
 
@@ -78,7 +78,7 @@ async function getPuzzleFromCacheOrRedownload(): Promise<string> {
     })();
 
   const cacheDir = join(temp, "advent-of-code");
-  const cacheFile = join(cacheDir, "2015-02.dat");
+  const cacheFile = join(cacheDir, "2015-03.dat");
   const url = "https://adventofcode.com/2015/day/3/input";
 
   try {
@@ -116,18 +116,26 @@ if (import.meta.main) {
 
     const InputData: string = PuzzleInput;
 
-    let SantaPosition: entity_position = { X: 0, Y: 0, };
-    let RoboSantaPosition: entity_position = { X: 0, Y: 0, };
-    let NoHelpSantaPosition: entity_position = { X: 0, Y: 0, };
+    const SantaPosition: entity_position = { X: 0, Y: 0, };
+    const RoboSantaPosition: entity_position = { X: 0, Y: 0, };
+    const NoHelpSantaPosition: entity_position = { X: 0, Y: 0, };
 
     let isSantaTurn = true;
 
-    let NeighborhoodInfo: house_telemetry = {
+    const Part1Telemetry: house_telemetry = {
+        DistinctHouseCount: [],
+        HousesCount: [],        
+    }
+
+    const Part2Telemetry: house_telemetry = {
         DistinctHouseCount: [],
         HousesCount: [],
     };
-    NeighborhoodInfo.DistinctHouseCount.push(PrintPosition(SantaPosition));
-    NeighborhoodInfo.HousesCount.push(PrintPosition(SantaPosition));
+
+    Part1Telemetry.DistinctHouseCount.push(PrintPosition(SantaPosition));
+    Part1Telemetry.HousesCount.push(PrintPosition(SantaPosition));
+    Part2Telemetry.DistinctHouseCount.push(PrintPosition(SantaPosition));
+    Part2Telemetry.HousesCount.push(PrintPosition(SantaPosition));
 
     for (let i = 0; i < InputData.length; ++i) {
         const token: string = InputData.charAt(i);
@@ -139,10 +147,22 @@ if (import.meta.main) {
 
         ProcessMovement(NoHelpSantaPosition, token);
 
+        const Part1CurrentAddr: string = PrintPosition(NoHelpSantaPosition);
+        Part1Telemetry.HousesCount.push(Part1CurrentAddr);
+        if (Part1Telemetry.DistinctHouseCount.indexOf(Part1CurrentAddr) == -1)
+            Part1Telemetry.DistinctHouseCount.push(Part1CurrentAddr);
+
         if (isSantaTurn) {
             isSantaTurn = false;
+            const SantaCurrentAddr: string = PrintPosition(SantaPosition);
+            if (Part2Telemetry.DistinctHouseCount.indexOf(SantaCurrentAddr) == -1)
+                Part2Telemetry.DistinctHouseCount.push(SantaCurrentAddr);
         } else {
             isSantaTurn = true;
+            const RoboCurrentAddr: string = PrintPosition(RoboSantaPosition);
+            Part2Telemetry.HousesCount.push(RoboCurrentAddr);
+            if (Part2Telemetry.DistinctHouseCount.indexOf(RoboCurrentAddr) == -1)
+                Part2Telemetry.DistinctHouseCount.push(RoboCurrentAddr);
         }
     }
   } catch (e) {
