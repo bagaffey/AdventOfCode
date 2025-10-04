@@ -33,4 +33,11 @@ function lookSay(input, nRounds) {
 }
 
 console.log('loaded.');
-//console.log(lookSay(puzzleInput));
+
+var Part1Solution = lookSay(puzzleInput, 40).length;
+
+console.log(`Part 1 solution is ${Part1Solution}`);
+
+var Part2Solution = lookSay(puzzleInput, 50).length;
+
+console.log(`Part 2 solution is ${Part2Solution}`);
