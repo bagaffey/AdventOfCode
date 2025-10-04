@@ -1,86 +1,32 @@
-// deno run --allow-env=AOC_SESSION,TEMP,TMP --allow-read --allow-write --allow-net=adventofcode.com Day4.ts [inputFile]
+// deno run Day4.ts [secretkey]
+// This requires a node package..
+import { createHash } from "node:crypto";
 
-import { join } from "https://deno.land/std/path/mod.ts";
+function md5Hex(input: string): string {
+    return createHash("md5").update(input).digest("hex");
+ }
 
-async function getPuzzleFromFile(path: string): Promise<string> {
-  try {
-    const text = await Deno.readTextFile(path);
-    return normalizeText(text);
-  } catch {
-    throw new Error(`Input file not found: ${path}`);
-  }
-}
-
-async function getPuzzleFromAOC(cacheFile: string, url: string): Promise<string> {
-  const session = Deno.env.get("AOC_SESSION");
-  if (!session) throw new Error("AOC_SESSION environment variable is not set. Set it and run again.");
-
-  const Response = await fetch(url, {
-    headers: {
-      "Cookie": `session=${session}`,
-      "User-Agent": "aoc-fetcher/1.0",
-    },
-  });
-
-  if (!Response.ok) {
-    throw new Error(`Failed to fetch AoC input: ${Response.status} ${Response.statusText}`);
-  }
-
-  const RawData = (await Response.text()).replace(/\r\n/g, "\n");
-  const NormalizedInput = normalizeText(RawData);
-
-  await Deno.mkdir(dirname(cacheFile), { recursive: true });
-  await Deno.writeTextFile(cacheFile, NormalizedInput, { create: true });
-
-  return (NormalizedInput);
-}
-
-async function getPuzzleFromCacheOrRedownload(): Promise<string> {
-  const temp =
-    Deno.env.get("TEMP") ??
-    Deno.env.get("TMP") ??
-    (() => {
-      throw new Error("TEMP and TMP not found in environment.");
-    })();
-
-  const cacheDir = join(temp, "advent-of-code");
-  const cacheFile = join(cacheDir, "2015-04.dat");
-  const url = "https://adventofcode.com/2015/day/4/input";
-
-  try {
-    const stats = await Deno.stat(cacheFile);
+function solve(secretkey: string, prefix: string): number {
+    let n = 0;
     
-    if (stats.isFile) {
-      const text = await Deno.readTextFile(cacheFile);
-      return normalizeText(text);
+    for (;;) {
+        ++n;
+        const result = md5Hex(secretkey + n);
+        if (result.startsWith(prefix))
+            return (n);
     }
-  } catch {
-    // no cache found
-  }
-
-    return await getPuzzleFromAOC(cacheFile, url);    
-}
-
-function normalizeText(text: string): string {
-  const normalized = text.replace(/\r\n/g, "\n").trimEnd() + "\n";
-  return (normalized);
-}
-
-function dirname(p: string): string {
-  const idx = p.replace(/\\/g, "/").lastIndexOf("/");
-  return (idx === -1 ? "." : p.slice(0, idx));
 }
 
 if (import.meta.main) {
   try {
-    const args = [...Deno.args];
+    const SecretKey: string = Deno.args[0];
+    if (!SecretKey) throw new Error("Usage: deno run Day4.ts <secretKey>");
 
-    const inputPath = args[0];
-    const PuzzleInput = inputPath
-      ? await getPuzzleFromFile(inputPath)
-      : await getPuzzleFromCacheOrRedownload();
+    const part1Solution = await solve(SecretKey, "00000");
+    console.log(`Part 1 solution is: ${part1Solution}`);
 
-    const InputData: string = PuzzleInput;
+    const part2Solution = await solve(SecretKey, "000000");
+    console.log(`Part 2 solution is: ${part2Solution}`);
 
   } catch (e) {
     console.error(`Error: ${e instanceof Error ? e.message : String(e)}`);
