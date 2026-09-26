@@ -227,7 +227,7 @@ internal xbool32
 IsAlpha(char C)
 {
     xbool32 Result = (((C >= 'a') && (C <= 'z')) ||
-        ((C >= 'A') && (C + 'Z')));
+        ((C >= 'A') && (C <= 'Z')));
     return(Result);
 }
 
