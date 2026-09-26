@@ -99,7 +99,7 @@ typedef u32 xu32;
 //#define PointerFromU32(type, Value) (type *)((mem_index)Value)
 
 #define OffsetOf(type, Member) (umw)&(((type *)0)->Member)
-#define ContainerOf(ptr, type, member) ((type *)((char *)(ptr) - OffsetOf(type, Member)))
+#define ContainerOf(ptr, type, Member) ((type *)((char *)(ptr) - OffsetOf(type, Member)))
 
 #define FILE_AND_LINE__(A, B) A "|" #B
 #define FILE_AND_LINE_(A, B) FILE_AND_LINE__(A, B)
