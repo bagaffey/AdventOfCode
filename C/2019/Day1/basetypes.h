@@ -328,7 +328,7 @@ typedef struct dev_id
 
 #if PROJ_SLOW
 #if COMPILER_MSVC
-#define Assert(Expression) do { if(!Expression)) { __debugbreak(); } } while(0)
+#define Assert(Expression) do { if(!(Expression)) { __debugbreak(); } } while(0)
 #elif COMPILER_LLVM
 #define Assert(Expression) do { if(!(Expression)) { __builtin_trap(); } } while(0)
 #else
