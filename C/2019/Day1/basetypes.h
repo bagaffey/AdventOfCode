@@ -339,7 +339,7 @@ typedef struct dev_id
 #define Assert(Expression)
 #endif
 
-#define InvlaidCodePath Assert(!"InvalidCodePath")
+#define InvalidCodePath Assert(!"InvalidCodePath")
 #define InvalidDefaultCase default: {InvalidCodePath;} break
 
 #define Terabytes(Value) (Gigabytes(Value)*1024LL)
